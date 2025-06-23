@@ -12,7 +12,7 @@ def masked_mean(
 ) -> torch.Tensor:
     if mask is None:
         return tensor.mean(axis=dim)
-    return (tensor * mask).sum(axis=dim) / mask.sum(axis=dim)
+    return (tensor * mask).sum(axis=dim) / 1024     # Dr. GRPO
 
 
 class GRPOLoss(nn.Module):
@@ -36,9 +36,9 @@ class GRPOLoss(nn.Module):
         
 
         ratio = (log_probs - old_log_probs).exp()
-        surr1 = ratio * advantages
-        surr2 = ratio.clamp(1 - self.clip_eps, 1 + self.clip_eps) * advantages
-        loss = -torch.min(surr1, surr2)
+        # surr1 = ratio * advantages
+        # surr2 = ratio.clamp(1 - self.clip_eps, 1 + self.clip_eps) * advantages
+        loss = -ratio * advantages
 
         loss = masked_mean(loss, action_mask, dim=-1).mean()
         return loss

@@ -4,6 +4,9 @@ import json
 from pathlib import Path
 import random
 import re
+from datasets import load_dataset
+
+from datasets import load_dataset
 from typing import Any, Iterator, Optional
 import tqdm
 import torch
@@ -36,7 +39,7 @@ def load_model(
 
 # DeepSeek Zero system prompt
 system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
-The assistant first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., <think> reasoning process here </think>
+The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
 <answer> answer here </answer>
 """
 
@@ -107,6 +110,8 @@ def rollout(
 
     # 3. determine rewards
     returns = torch.zeros(num_rollouts, 1, dtype=torch.float)
+    oracle_answer = oracle_answer.split(" ")[-1]
+    print(oracle_answer)
     for i, completion in enumerate(completions):
         # search answer tag
         answer_match = re.search(
@@ -229,16 +234,11 @@ def main():
 
     pad_token_id = tokenizer.eos_token_id
 
-    prompts = read_prompts(
-        "data/math_tasks.jsonl",
-        predicate=lambda x: len(x["question"]) < 128
-        and x["num_terms"] <= 3
-        and x["num_digits"] <= 3,
-        max_rows=64 * 1024,
-    )
-    print(f"found {len(prompts)} matching prompts")
+    dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
+    iterable_dataset = dataset.shuffle(buffer_size=10_000)
+    
     prompt_loader = DataLoader(
-        prompts,
+        iterable_dataset,
         batch_size=rollouts_per_step,
         shuffle=True,
         drop_last=True,
