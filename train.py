@@ -23,7 +23,7 @@ from transformers import (
 )
 from loss import GRPOLoss
 from replay_buffer import ReplayBuffer, Experience, join_experience_batch
-
+from sys import argv
 
 def load_model(
     model_name_or_path: str,
@@ -201,7 +201,7 @@ def read_prompts(
 def main():
     seed = 42
     device_index = 0
-    model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+    model_name = argv[1]
     checkpoint_path = Path("./output")
     checkpoint_interval = 20
     train_batch_size = 16
@@ -258,7 +258,7 @@ def main():
         answers = prompt_batch["answer"]
 
         with torch.no_grad():
-            for q, a in tqdm.tqdm(zip(questions, answers), total=len(questions)):
+            for q, a in zip(questions, answers):
                 # print(len(replay_buffer))
                 sequence_ids, returns, action_mask, completions = rollout(
                     model,
