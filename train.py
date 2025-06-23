@@ -296,7 +296,7 @@ def main():
         torch.cuda.empty_cache()
         episode_return_sum = torch.stack(rollout_returns).mean()
         print(f"returns of step {k}: {episode_return_sum:.4f}")
-        
+        print(f"We have {len(replay_buffer)} items")
 
         experience_sampler = DataLoader(
             replay_buffer,
@@ -315,7 +315,7 @@ def main():
                 exp = exp.to(device)
 
                 optimizer.zero_grad()
-
+                print(exp.sequences.shape)
                 log_probs = sequences_log_probs(
                     model, sequence_ids=exp.sequences, attention_mask=exp.attention_mask
                 )
