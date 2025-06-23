@@ -259,6 +259,7 @@ def main():
 
         with torch.no_grad():
             for q, a in tqdm.tqdm(zip(questions, answers), total=len(questions)):
+                # print(len(replay_buffer))
                 sequence_ids, returns, action_mask, completions = rollout(
                     model,
                     tokenizer,
@@ -326,12 +327,13 @@ def main():
                     print(f"Loss not finite, skipping backward, loss={loss}")
                     print(f"experience.advantages={experience.advantages}")
                     continue
-
-                loss.backward()
-                grad_norm = clip_grad_norm_(model.parameters(), max_norm=max_norm)
-                print(f"{step_epoch}: loss={loss: .4f}, grad_norm={grad_norm: .4f}")
+                print(f"{step_epoch}: loss={loss: .4f}")
+                loss = loss / len(experience_sampler)
                 
-                optimizer.step()
+                loss.backward()
+                
+            grad_norm = clip_grad_norm_(model.parameters(), max_norm=max_norm)
+            optimizer.step()
 
         
 
