@@ -18,7 +18,7 @@ from transformers import (
     AutoModelForCausalLM,
     GenerationConfig,
 )
-from loss import approx_kl_divergence, GRPOLoss
+from loss import GRPOLoss
 from replay_buffer import ReplayBuffer, Experience, join_experience_batch
 
 
@@ -285,7 +285,6 @@ def main():
                     advantages=advantages,
                     attention_mask=attention_mask,
                     action_mask=action_mask,
-                    kl=None,
                 )
                 replay_buffer.append(experience.to(cpu_device))
 
