@@ -124,11 +124,11 @@ def rollout(
                 reward = 0.5
             else:
                 reward = 0.01
-        elif oracle_answer in completion:
-            reward = 0.5
+        # elif oracle_answer in completion:
+        #     reward = 0.5
 
-        if len(re.findall(r"<answer>",completion)) > 1 or len(re.findall(r"</answer>",completion)) > 1:
-            reward = max(0, reward - 0.2)
+        # if len(re.findall(r"<answer>",completion)) > 1 or len(re.findall(r"</answer>",completion)) > 1:
+        #     reward = max(0, reward - 0.2)
 
         returns[i] = reward
 
@@ -316,7 +316,7 @@ def main():
                 exp = exp.to(device)
 
                 optimizer.zero_grad()
-                print(exp.sequences.shape)
+                # print(exp.sequences.shape)
                 log_probs = sequences_log_probs(
                     model, sequence_ids=exp.sequences, attention_mask=exp.attention_mask
                 )
