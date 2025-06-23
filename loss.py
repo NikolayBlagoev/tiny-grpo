@@ -41,4 +41,4 @@ class GRPOLoss(nn.Module):
         loss = -torch.min(surr1, surr2)
 
         loss = masked_mean(loss, action_mask, dim=-1).mean()
-        return loss, kl.mean()
+        return loss
