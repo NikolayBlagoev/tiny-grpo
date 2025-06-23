@@ -127,7 +127,7 @@ def rollout(
         elif oracle_answer in completion:
             reward = 0.5
 
-        if re.findall(r"<answer>",completion) > 1 or re.findall(r"</answer>",completion) > 1:
+        if len(re.findall(r"<answer>",completion)) > 1 or len(re.findall(r"</answer>",completion)) > 1:
             reward = max(0, reward - 0.2)
 
         returns[i] = reward
