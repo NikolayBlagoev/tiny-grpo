@@ -294,7 +294,7 @@ def main():
                 replay_buffer.append(experience.to(cpu_device))
 
         torch.cuda.empty_cache()
-        episode_return_sum = torch.stack(rollout_returns).sum()
+        episode_return_sum = torch.stack(rollout_returns).mean()
         print(f"returns of step {k}: {episode_return_sum:.4f}")
         
 
