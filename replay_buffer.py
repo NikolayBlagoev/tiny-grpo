@@ -1,5 +1,5 @@
 from dataclasses import dataclass, fields
-from typing import Optional, Self
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
@@ -22,14 +22,12 @@ def zero_pad_sequences(
 class Experience:
     sequences: torch.Tensor
     action_log_probs: torch.Tensor
-    log_probs_ref: torch.Tensor
     returns: Optional[torch.Tensor]
     advantages: Optional[torch.Tensor]
     attention_mask: Optional[torch.Tensor]
     action_mask: torch.Tensor
-    kl: Optional[torch.Tensor] = None
 
-    def to(self, device: torch.device) -> Self:
+    def to(self, device: torch.device):
         members = {}
         for field in fields(self):
             v = getattr(self, field.name)
@@ -45,7 +43,6 @@ def split_experience_batch(experience: Experience) -> list[Experience]:
     keys = (
         "sequences",
         "action_log_probs",
-        "log_probs_ref",
         "returns",
         "advantages",
         "attention_mask",
@@ -69,7 +66,6 @@ def join_experience_batch(items: list[Experience]) -> Experience:
     keys = (
         "sequences",
         "action_log_probs",
-        "log_probs_ref",
         "returns",
         "advantages",
         "attention_mask",

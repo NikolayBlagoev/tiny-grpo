@@ -1,10 +1,11 @@
+
 from collections.abc import Callable
 import json
 from pathlib import Path
 import random
 import re
 from typing import Any, Iterator, Optional
-import wandb
+
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
@@ -14,6 +15,7 @@ from transformers import (
     AutoTokenizer,
     PreTrainedTokenizer,
     LlamaForCausalLM,
+    AutoModelForCausalLM,
     GenerationConfig,
 )
 from loss import approx_kl_divergence, GRPOLoss
@@ -28,13 +30,7 @@ def load_model(
 ) -> tuple[LlamaForCausalLM, PreTrainedTokenizer]:
     tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
     tokenizer.pad_token = tokenizer.eos_token
-    model = LlamaForCausalLM.from_pretrained(
-        model_name_or_path,
-        trust_remote_code=trust_remote_code,
-        attn_implementation="flash_attention_2",
-        torch_dtype=torch.bfloat16 if bf16 else "auto",
-        device_map=device_map,
-    )
+    model = AutoModelForCausalLM.from_pretrained(model_name_or_path, device_map="cuda")
     return model, tokenizer
 
 
@@ -102,6 +98,7 @@ def rollout(
     completions = tokenizer.batch_decode(
         sequence_ids[:, input_ids.shape[1] :], skip_special_tokens=True
     )
+    print(completions[0])
 
     action_mask = torch.zeros_like(sequence_ids, dtype=torch.bool)
     action_mask[:, input_ids.shape[1] :] = True
@@ -150,7 +147,7 @@ def sequence_log_probs_from_logits(
 
 
 def sequences_log_probs(
-    model: LlamaForCausalLM,
+    model,
     sequence_ids: torch.Tensor,
     attention_mask: torch.Tensor,
 ) -> torch.Tensor:
@@ -193,9 +190,8 @@ def read_prompts(
 
 def main():
     seed = 42
-    wandb_project = None  # "tiny_grpo"
     device_index = 0
-    model_name = "meta-llama/Llama-3.2-1B-Instruct"
+    model_name = "Qwen/Qwen2.5-0.5B-Instruct"
     checkpoint_path = Path("./output")
     checkpoint_interval = 20
     train_batch_size = 16
@@ -247,10 +243,6 @@ def main():
     replay_buffer = ReplayBuffer()
     objective = GRPOLoss(clip_eps=clip_eps, kl_weight=kl_weight)
 
-    if wandb_project is None:
-        wandb.init(mode="disabled")
-    else:
-        wandb.init(project=wandb_project)
 
     for k, prompt_batch in enumerate(prompt_loader):
         rollout_returns = []
@@ -286,33 +278,21 @@ def main():
                     sequence_ids=sequence_ids,
                     attention_mask=attention_mask,
                 )
-                log_probs_ref = sequences_log_probs(
-                    model=reference_model,
-                    sequence_ids=sequence_ids,
-                    attention_mask=attention_mask,
-                )
-                kl = approx_kl_divergence(
-                    log_probs=log_probs,
-                    log_probs_ref=log_probs_ref,
-                    action_mask=action_mask,
-                )
-
                 experience = Experience(
                     sequences=sequence_ids,
                     action_log_probs=log_probs,
-                    log_probs_ref=log_probs_ref,
                     returns=returns,
                     advantages=advantages,
                     attention_mask=attention_mask,
                     action_mask=action_mask,
-                    kl=kl,
+                    kl=None,
                 )
                 replay_buffer.append(experience.to(cpu_device))
 
         torch.cuda.empty_cache()
         episode_return_sum = torch.stack(rollout_returns).sum()
         print(f"returns of step {k}: {episode_return_sum:.4f}")
-        wandb.log({"returns": episode_return_sum})
+        
 
         experience_sampler = DataLoader(
             replay_buffer,
@@ -336,7 +316,7 @@ def main():
                     model, sequence_ids=exp.sequences, attention_mask=exp.attention_mask
                 )
 
-                loss, kl = objective(log_probs=log_probs, experience=exp)
+                loss = objective(log_probs=log_probs, experience=exp)
 
                 if not loss.isfinite():
                     print(f"Loss not finite, skipping backward, loss={loss}")
@@ -345,20 +325,13 @@ def main():
 
                 loss.backward()
                 grad_norm = clip_grad_norm_(model.parameters(), max_norm=max_norm)
-                print(f"{step_epoch}: kl={kl: .4f}, grad_norm={grad_norm: .4f}")
-                wandb.log({"kl": kl, "grad_norm": grad_norm})
-
+                print(f"{step_epoch}: loss={loss: .4f}, grad_norm={grad_norm: .4f}")
+                
                 optimizer.step()
 
-        if (
-            checkpoint_path is not None
-            and checkpoint_interval is not None
-            and (k + 1) % checkpoint_interval == 0
-        ):
-            model.save_pretrained(checkpoint_path / f"step_{k}")
+        
 
-    if checkpoint_path is not None:
-        model.save_pretrained(checkpoint_path / f"step_{k}")
+    
 
 
 if __name__ == "__main__":
