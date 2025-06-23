@@ -124,10 +124,11 @@ def rollout(
                 reward = 0.5
             else:
                 reward = 0.01
-            if re.findall(r"<answer>",completion) > 1 or re.findall(r"</answer>",completion) > 1:
-                reward = max(0, reward - 0.2)
-        elif oracle_answer in answer:
-            reward = 0.25
+        elif oracle_answer in completion:
+            reward = 0.5
+
+        if re.findall(r"<answer>",completion) > 1 or re.findall(r"</answer>",completion) > 1:
+            reward = max(0, reward - 0.2)
 
         returns[i] = reward
 
@@ -248,7 +249,7 @@ def main():
     objective = GRPOLoss(clip_eps=clip_eps, kl_weight=kl_weight)
 
 
-    for k, prompt_batch in enumerate(prompt_loader):
+    for k, prompt_batch in tqdm.tqdm(enumerate(prompt_loader)):
         rollout_returns = []
 
         replay_buffer.clear()
@@ -257,7 +258,7 @@ def main():
         answers = prompt_batch["answer"]
 
         with torch.no_grad():
-            for q, a in tqdm.tqdm(zip(questions, answers), total=len(questions)):
+            for q, a in zip(questions, answers):
                 sequence_ids, returns, action_mask, completions = rollout(
                     model,
                     tokenizer,
