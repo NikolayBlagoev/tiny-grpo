@@ -249,7 +249,7 @@ def main():
     objective = GRPOLoss(clip_eps=clip_eps, kl_weight=kl_weight)
 
 
-    for k, prompt_batch in tqdm.tqdm(enumerate(prompt_loader)):
+    for k, prompt_batch in enumerate(prompt_loader):
         rollout_returns = []
 
         replay_buffer.clear()
@@ -258,7 +258,7 @@ def main():
         answers = prompt_batch["answer"]
 
         with torch.no_grad():
-            for q, a in zip(questions, answers):
+            for q, a in tqdm.tqdm(zip(questions, answers), total=len(questions)):
                 sequence_ids, returns, action_mask, completions = rollout(
                     model,
                     tokenizer,
