@@ -5,7 +5,7 @@ from pathlib import Path
 import random
 import re
 from typing import Any, Iterator, Optional
-
+import tqdm
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
@@ -98,7 +98,7 @@ def rollout(
     completions = tokenizer.batch_decode(
         sequence_ids[:, input_ids.shape[1] :], skip_special_tokens=True
     )
-    print(completions[0])
+    # print(completions[0])
 
     action_mask = torch.zeros_like(sequence_ids, dtype=torch.bool)
     action_mask[:, input_ids.shape[1] :] = True
@@ -124,6 +124,10 @@ def rollout(
                 reward = 0.5
             else:
                 reward = 0.01
+            if re.findall(r"<answer>",completion) > 1 or re.findall(r"</answer>",completion) > 1:
+                reward = max(0, reward - 0.2)
+        elif oracle_answer in answer:
+            reward = 0.25
 
         returns[i] = reward
 
@@ -253,7 +257,7 @@ def main():
         answers = prompt_batch["answer"]
 
         with torch.no_grad():
-            for q, a in zip(questions, answers):
+            for q, a in tqdm.tqdm(zip(questions, answers), total=len(questions)):
                 sequence_ids, returns, action_mask, completions = rollout(
                     model,
                     tokenizer,
@@ -265,9 +269,9 @@ def main():
                     top_p=top_p,
                 )
 
-                print(
-                    f"rollout q='{q}', a='{a}', returns={returns.sum().item():.2f}, replay_buffer_size={len(replay_buffer)}, sequence_ids={sequence_ids.shape}"
-                )
+                # print(
+                #     f"rollout q='{q}', a='{a}', returns={returns.sum().item():.2f}, replay_buffer_size={len(replay_buffer)}, sequence_ids={sequence_ids.shape}"
+                # )
                 rollout_returns.append(returns.cpu())
 
                 advantages = group_advantages(returns)
