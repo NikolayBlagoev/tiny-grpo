@@ -240,7 +240,7 @@ def main():
     prompt_loader = DataLoader(
         iterable_dataset,
         batch_size=rollouts_per_step,
-        shuffle=True,
+        shuffle=False,
         drop_last=True,
         pin_memory=False,
     )
