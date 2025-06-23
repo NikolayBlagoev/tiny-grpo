@@ -111,7 +111,7 @@ def rollout(
     # 3. determine rewards
     returns = torch.zeros(num_rollouts, 1, dtype=torch.float)
     oracle_answer = oracle_answer.split(" ")[-1]
-    print(oracle_answer)
+    # print(oracle_answer)
     for i, completion in enumerate(completions):
         # search answer tag
         answer_match = re.search(
