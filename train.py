@@ -312,7 +312,7 @@ def main():
                 sequence_ids = new_sequnece_ids
                 returns = new_returns
                 action_mask = new_action_mask
-                mx_el = 0
+                max_el = 0
                 for el in range(sequence_ids.shape[0]):
                     t = sequence_ids.shape[1] - 1
                     while t > 0:
