@@ -321,7 +321,7 @@ def main():
                             break
                         t -= 1
                 sequence_ids = sequence_ids[:,:max_el]
-                action_mask = action_mask[:,:max_el]
+                action_mask = action_mask[:,:max_el-1]
 
 
                 # print(sequence_ids.shape)
