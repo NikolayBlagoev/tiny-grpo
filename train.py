@@ -125,16 +125,21 @@ def rollout(
         reward = 0
         if answer is not None:
             if answer == oracle_answer:
-                reward = 1.0
+                reward = 0.8
             elif oracle_answer in answer:
-                reward = 0.5
+                reward = 0.3
             else:
-                reward = 0.01
+                reward = 0.2
+        if "<think>" in completion and "</think>" in completion and completion.find("</think>") > completion.find("<think>"):
+            reward += 0.2
+        elif "<think>" in completion and "</think>" in completion:
+            reward += 0.05
+
         # elif oracle_answer in completion:
         #     reward = 0.5
 
-        # if len(re.findall(r"<answer>",completion)) > 1 or len(re.findall(r"</answer>",completion)) > 1:
-        #     reward = max(0, reward - 0.2)
+        if len(re.findall(r"<answer>",completion)) > 1 or len(re.findall(r"</answer>",completion)) > 1:
+            reward = max(0, reward - 0.2)
 
         returns[i] = reward
 
@@ -309,11 +314,12 @@ def main():
                 action_mask = new_action_mask
                 mx_el = 0
                 for el in range(sequence_ids.shape[0]):
-                    t = 1024
+                    t = sequence_ids.shape[1]
                     while t > 0:
                         if sequence_ids[el][t] != tokenizer.eos_token_id:
                             max_el = max(max_el,t+1)
                             break
+                        t -= 1
                 sequence_ids = sequence_ids[:,:t]
                 action_mask = action_mask[:,:t]
 
@@ -357,13 +363,13 @@ def main():
 
         for step_epoch in range(epochs_per_step):
             model.train()
-
+            optimizer.zero_grad()
             for exp in experience_sampler:
                 exp: Experience
 
                 exp = exp.to(device)
 
-                optimizer.zero_grad()
+                
                 # print(exp.sequences.shape)
                 log_probs = sequences_log_probs(
                     model, sequence_ids=exp.sequences, attention_mask=exp.attention_mask
