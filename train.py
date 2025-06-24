@@ -281,20 +281,20 @@ def main():
                 
                 for dv in range(2):
                     if dv == device_index:
-                        print("sending to ", (dv + 1)%2, sequence_ids.shape)
+                        # print("sending to ", (dv + 1)%2, sequence_ids.shape)
                         dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
                     else:
                         tmp = torch.zeros_like(sequence_ids, device="cpu")
-                        print("receiving from ", (dv)%2, tmp.shape)
+                        # print("receiving from ", (dv)%2, tmp.shape)
                         dist.recv(tmp,dv)
                         new_sequnece_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))
 
                     if dv == device_index:
-                        print("sending to ", (dv + 1)%2, returns.shape)
+                        # print("sending to ", (dv + 1)%2, returns.shape)
                         dist.send(returns.to("cpu"), (dv + 1) % 2)
                     else:
                         tmp = torch.zeros_like(returns, device="cpu")
-                        print("receiving from ", (dv)%2, tmp.shape)
+                        # print("receiving from ", (dv)%2, tmp.shape)
                         dist.recv(tmp,dv)
                         new_returns = torch.cat((tmp.to(returns.device),returns))
 
@@ -308,7 +308,7 @@ def main():
                 returns = new_returns
                 action_mask = new_action_mask
 
-                print(sequence_ids.shape)
+                # print(sequence_ids.shape)
                 # print(
                 #     f"rollout q='{q}', a='{a}', returns={returns.sum().item():.2f}, replay_buffer_size={len(replay_buffer)}, sequence_ids={sequence_ids.shape}"
                 # )
