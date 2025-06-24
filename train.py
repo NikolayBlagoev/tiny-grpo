@@ -78,7 +78,7 @@ def rollout(
         padding=True,
         padding_side="left",
         return_attention_mask=True,
-    ).to("cuda")
+    ).to(model.device)
 
     # duplicate prompt num_rollouts times
     model_inputs["attention_mask"] = model_inputs["attention_mask"].repeat(
