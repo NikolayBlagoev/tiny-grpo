@@ -320,8 +320,8 @@ def main():
                             max_el = max(max_el,t+1)
                             break
                         t -= 1
-                sequence_ids = sequence_ids[:,:t]
-                action_mask = action_mask[:,:t]
+                sequence_ids = sequence_ids[:,:max_el]
+                action_mask = action_mask[:,:max_el]
 
 
                 # print(sequence_ids.shape)
