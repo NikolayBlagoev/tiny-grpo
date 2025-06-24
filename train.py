@@ -280,9 +280,11 @@ def main():
                 )
                 for dv in range(2):
                     if dv == device_index:
+                        print("sending to ", (dv + 1)%2, sequence_ids.shape)
                         dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
                     else:
                         tmp = torch.zeros_like(sequence_ids)
+                        print("receiving from ", (dv)%2, tmp.shape)
                         dist.recv(tmp,dv)
                         sequence_ids = torch.cat((tmp.to(device),sequence_ids))
 
