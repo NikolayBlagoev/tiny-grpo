@@ -208,11 +208,11 @@ def main():
     if device_index == 0:
         model_name = "Qwen/Qwen2.5-1.5B-Instruct"
     else:
-        model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+        model_name = "Qwen/Qwen2.5-3B-Instruct"
     
     checkpoint_path = Path("./output")
     checkpoint_interval = 20
-    train_batch_size = 16
+    train_batch_size = 4
     lr = 5e-6
     kl_weight = 0.01
     clip_eps = 0.2
@@ -307,6 +307,16 @@ def main():
                 sequence_ids = new_sequnece_ids
                 returns = new_returns
                 action_mask = new_action_mask
+                mx_el = 0
+                for el in range(sequence_ids.shape[0]):
+                    t = 1024
+                    while t > 0:
+                        if sequence_ids[el][t] != tokenizer.eos_token_id:
+                            max_el = max(max_el,t)
+                            break
+                sequence_ids = sequence_ids[:,:t]
+                action_mask = action_mask[:,:t]
+
 
                 # print(sequence_ids.shape)
                 # print(

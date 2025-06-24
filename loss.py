@@ -12,7 +12,7 @@ def masked_mean(
 ) -> torch.Tensor:
     if mask is None:
         return tensor.mean(axis=dim)
-    return (tensor * mask).sum(axis=dim) / 1024     # Dr. GRPO
+    return (tensor * mask).sum(axis=dim) / 1024     # Dr GRPO
 
 
 class GRPOLoss(nn.Module):
