@@ -312,7 +312,7 @@ def main():
                     t = 1024
                     while t > 0:
                         if sequence_ids[el][t] != tokenizer.eos_token_id:
-                            max_el = max(max_el,t)
+                            max_el = max(max_el,t+1)
                             break
                 sequence_ids = sequence_ids[:,:t]
                 action_mask = action_mask[:,:t]

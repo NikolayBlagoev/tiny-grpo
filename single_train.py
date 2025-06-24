@@ -202,12 +202,9 @@ import os
 def main():
     seed = 42
     
-    device_index = int(argv[1])
+    device_index = 0
     # dist.init_process_group("gloo", rank=device_index, world_size=2)
-    if device_index == 0:
-        model_name = "Qwen/Qwen2.5-1.5B-Instruct"
-    else:
-        model_name = "Qwen/Qwen2.5-3B-Instruct"
+    model_name = argv[1]
     
     checkpoint_path = Path("./output")
     checkpoint_interval = 20
