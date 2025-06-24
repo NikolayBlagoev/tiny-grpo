@@ -314,7 +314,7 @@ def main():
                 action_mask = new_action_mask
                 mx_el = 0
                 for el in range(sequence_ids.shape[0]):
-                    t = sequence_ids.shape[1]
+                    t = sequence_ids.shape[1] - 1
                     while t > 0:
                         if sequence_ids[el][t] != tokenizer.eos_token_id:
                             max_el = max(max_el,t+1)
@@ -385,10 +385,11 @@ def main():
                 loss = loss / len(experience_sampler)
                 
                 loss.backward()
+                del exp
                 
             grad_norm = clip_grad_norm_(model.parameters(), max_norm=max_norm)
             optimizer.step()
-
+        torch.cuda.empty_cache()
         
 
     

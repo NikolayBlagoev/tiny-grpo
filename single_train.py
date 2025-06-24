@@ -212,7 +212,7 @@ def main():
     
     checkpoint_path = Path("./output")
     checkpoint_interval = 20
-    train_batch_size = 8
+    train_batch_size = 4
     lr = 5e-6
     kl_weight = 0.01
     clip_eps = 0.2
@@ -368,10 +368,13 @@ def main():
                 print(f"{step_epoch}: loss={loss: .4f}")
                 loss = loss / len(experience_sampler)
                 
+                
                 loss.backward()
+                del exp
                 
             grad_norm = clip_grad_norm_(model.parameters(), max_norm=max_norm)
             optimizer.step()
+        torch.cuda.empty_cache()
 
         
 
