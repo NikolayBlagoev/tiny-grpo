@@ -98,6 +98,7 @@ def rollout(
         pad_token_id=pad_token_id,
     )
     sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
+    out = F.pad(sequence_ids, (0,1024 - sequence_idsshape[1]), "constant", pad_token_id)  # effectively zero padding
     completions = tokenizer.batch_decode(
         sequence_ids[:, input_ids.shape[1] :], skip_special_tokens=True
     )
@@ -196,12 +197,19 @@ def read_prompts(
         if max_rows is not None and len(rows) >= max_rows:
             break
     return rows
-
-
+import torch.distributed as dist
+import os
 def main():
     seed = 42
-    device_index = 0
-    model_name = argv[1]
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "29500"
+    device_index = int(argv[1])
+    dist.init_process_group("gloo", rank=device_index, world_size=2)
+    if device_index == 0:
+        model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+    else:
+        model_name = "Qwen/Qwen2.5-0.5B-Instruct"
+    
     checkpoint_path = Path("./output")
     checkpoint_interval = 20
     train_batch_size = 16
@@ -209,7 +217,7 @@ def main():
     kl_weight = 0.01
     clip_eps = 0.2
 
-    group_size = 12
+    group_size = 6
     rollouts_per_step = 32
     epochs_per_step = 1
     max_norm = 1.0  # gradient clipping
@@ -270,7 +278,30 @@ def main():
                     temperature=temperature,
                     top_p=top_p,
                 )
+                for dv in range(2):
+                    if dv == device_index:
+                        dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
+                    else:
+                        tmp = torch.zeros_like(sequence_ids)
+                        dist.recv(tmp,(dv + 1) % 2)
+                        sequence_ids = torch.cat((tmp.to(device),sequence_ids))
 
+                    if dv == device_index:
+                        dist.send(returns.to("cpu"), (dv + 1) % 2)
+                    else:
+                        tmp = torch.zeros_like(returns)
+                        dist.recv(tmp,(dv + 1) % 2)
+                        returns = torch.cat((tmp.to(device),returns))
+
+                    if dv == device_index:
+                        dist.send(action_mask.to("cpu"), (dv + 1) % 2)
+                    else:
+                        tmp = torch.zeros_like(action_mask)
+                        dist.recv(tmp,(dv + 1) % 2)
+                        action_mask = torch.cat((tmp.to(device),action_mask))
+
+
+                print(sequence_ids.shape)
                 # print(
                 #     f"rollout q='{q}', a='{a}', returns={returns.sum().item():.2f}, replay_buffer_size={len(replay_buffer)}, sequence_ids={sequence_ids.shape}"
                 # )
