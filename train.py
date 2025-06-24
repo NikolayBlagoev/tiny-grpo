@@ -98,7 +98,7 @@ def rollout(
         pad_token_id=pad_token_id,
     )
     sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
-    out = F.pad(sequence_ids, (0,1024 - sequence_idsshape[1]), "constant", pad_token_id)  # effectively zero padding
+    out = F.pad(sequence_ids, (0,1024 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
     completions = tokenizer.batch_decode(
         sequence_ids[:, input_ids.shape[1] :], skip_special_tokens=True
     )
