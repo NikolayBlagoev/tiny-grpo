@@ -287,9 +287,11 @@ def main():
                         sequence_ids = torch.cat((tmp.to(device),sequence_ids))
 
                     if dv == device_index:
+                        print("sending to ", (dv + 1)%2, returns.shape)
                         dist.send(returns.to("cpu"), (dv + 1) % 2)
                     else:
                         tmp = torch.zeros_like(returns)
+                        print("receiving from ", (dv)%2, tmp.shape)
                         dist.recv(tmp,dv)
                         returns = torch.cat((tmp.to(device),returns))
 
