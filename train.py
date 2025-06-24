@@ -227,7 +227,7 @@ def main():
     top_p = 1.0
     temperature = 1.0
 
-    device = torch.device("cuda", device_index)
+    device = f"cuda:{device_index}"
     cpu_device = torch.device("cpu")
     init_rng(seed)
 
