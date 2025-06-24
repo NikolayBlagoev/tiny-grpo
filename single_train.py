@@ -231,11 +231,11 @@ def main():
     cpu_device = torch.device("cpu")
     init_rng(seed)
 
-    reference_model, _ = load_model(model_name, device_map=device)
+    
     model, tokenizer = load_model(model_name, device_map=device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    reference_model.eval()
+    
     model.gradient_checkpointing_enable(
         gradient_checkpointing_kwargs={"use_reentrant": False}
     )
@@ -258,6 +258,7 @@ def main():
 
 
     for k, prompt_batch in enumerate(prompt_loader):
+        model.eval()
         rollout_returns = []
 
         replay_buffer.clear()
@@ -316,12 +317,12 @@ def main():
 
                 advantages = group_advantages(returns)
                 attention_mask = sequence_ids != pad_token_id
-
-                log_probs = sequences_log_probs(
-                    model=model,
-                    sequence_ids=sequence_ids,
-                    attention_mask=attention_mask,
-                )
+                with torch.no_grad():
+                    log_probs = sequences_log_probs(
+                        model=model,
+                        sequence_ids=sequence_ids,
+                        attention_mask=attention_mask,
+                    )
                 experience = Experience(
                     sequences=sequence_ids,
                     action_log_probs=log_probs,
@@ -371,9 +372,11 @@ def main():
                 
                 loss.backward()
                 del exp
-                
+                del log_probs
+                del loss
             grad_norm = clip_grad_norm_(model.parameters(), max_norm=max_norm)
             optimizer.step()
+            optimizer.zero_grad()
         torch.cuda.empty_cache()
 
         

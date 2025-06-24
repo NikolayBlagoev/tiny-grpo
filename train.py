@@ -236,11 +236,11 @@ def main():
     cpu_device = torch.device("cpu")
     init_rng(seed)
 
-    reference_model, _ = load_model(model_name, device_map=device)
+    # reference_model, _ = load_model(model_name, device_map=device)
     model, tokenizer = load_model(model_name, device_map=device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
-    reference_model.eval()
+    
     model.gradient_checkpointing_enable(
         gradient_checkpointing_kwargs={"use_reentrant": False}
     )
@@ -387,8 +387,9 @@ def main():
                 loss.backward()
                 del exp
                 
-            grad_norm = clip_grad_norm_(model.parameters(), max_norm=max_norm)
+            clip_grad_norm_(model.parameters(), max_norm=max_norm)
             optimizer.step()
+            optimizer.zero_grad()
         torch.cuda.empty_cache()
         
 
