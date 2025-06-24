@@ -283,7 +283,7 @@ def main():
                         print("sending to ", (dv + 1)%2, sequence_ids.shape)
                         dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
                     else:
-                        tmp = torch.zeros_like(sequence_ids)
+                        tmp = torch.zeros_like(sequence_ids, device="cpu")
                         print("receiving from ", (dv)%2, tmp.shape)
                         dist.recv(tmp,dv)
                         sequence_ids = torch.cat((tmp.to(device),sequence_ids))
@@ -292,7 +292,7 @@ def main():
                         print("sending to ", (dv + 1)%2, returns.shape)
                         dist.send(returns.to("cpu"), (dv + 1) % 2)
                     else:
-                        tmp = torch.zeros_like(returns)
+                        tmp = torch.zeros_like(returns, device="cpu")
                         print("receiving from ", (dv)%2, tmp.shape)
                         dist.recv(tmp,dv)
                         returns = torch.cat((tmp.to(device),returns))
@@ -300,7 +300,7 @@ def main():
                     if dv == device_index:
                         dist.send(action_mask.to("cpu"), (dv + 1) % 2)
                     else:
-                        tmp = torch.zeros_like(action_mask)
+                        tmp = torch.zeros_like(action_mask, device="cpu")
                         dist.recv(tmp,dv)
                         action_mask = torch.cat((tmp.to(device),action_mask))
 
