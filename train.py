@@ -33,7 +33,7 @@ def load_model(
 ) -> tuple[LlamaForCausalLM, PreTrainedTokenizer]:
     tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
     tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(model_name_or_path, device_map="cuda")
+    model = AutoModelForCausalLM.from_pretrained(model_name_or_path, device_map=device_map)
     return model, tokenizer
 
 
