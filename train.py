@@ -243,7 +243,7 @@ def main():
     pad_token_id = tokenizer.eos_token_id
 
     dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
-    iterable_dataset = dataset.shuffle(buffer_size=10_000)
+    iterable_dataset = dataset.shuffle(buffer_size=10_000, seed= 42)
     
     prompt_loader = DataLoader(
         iterable_dataset,
