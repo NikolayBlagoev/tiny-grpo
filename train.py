@@ -283,21 +283,21 @@ def main():
                         dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
                     else:
                         tmp = torch.zeros_like(sequence_ids)
-                        dist.recv(tmp,(dv + 1) % 2)
+                        dist.recv(tmp,dv)
                         sequence_ids = torch.cat((tmp.to(device),sequence_ids))
 
                     if dv == device_index:
                         dist.send(returns.to("cpu"), (dv + 1) % 2)
                     else:
                         tmp = torch.zeros_like(returns)
-                        dist.recv(tmp,(dv + 1) % 2)
+                        dist.recv(tmp,dv)
                         returns = torch.cat((tmp.to(device),returns))
 
                     if dv == device_index:
                         dist.send(action_mask.to("cpu"), (dv + 1) % 2)
                     else:
                         tmp = torch.zeros_like(action_mask)
-                        dist.recv(tmp,(dv + 1) % 2)
+                        dist.recv(tmp,dv)
                         action_mask = torch.cat((tmp.to(device),action_mask))
 
 
