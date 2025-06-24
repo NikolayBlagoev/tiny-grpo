@@ -278,6 +278,7 @@ def main():
                     temperature=temperature,
                     top_p=top_p,
                 )
+                
                 for dv in range(2):
                     if dv == device_index:
                         print("sending to ", (dv + 1)%2, sequence_ids.shape)
@@ -286,7 +287,7 @@ def main():
                         tmp = torch.zeros_like(sequence_ids, device="cpu")
                         print("receiving from ", (dv)%2, tmp.shape)
                         dist.recv(tmp,dv)
-                        sequence_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))
+                        new_sequnece_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))
 
                     if dv == device_index:
                         print("sending to ", (dv + 1)%2, returns.shape)
@@ -295,15 +296,17 @@ def main():
                         tmp = torch.zeros_like(returns, device="cpu")
                         print("receiving from ", (dv)%2, tmp.shape)
                         dist.recv(tmp,dv)
-                        returns = torch.cat((tmp.to(returns.device),returns))
+                        new_returns = torch.cat((tmp.to(returns.device),returns))
 
                     if dv == device_index:
                         dist.send(action_mask.to("cpu"), (dv + 1) % 2)
                     else:
                         tmp = torch.zeros_like(action_mask, device="cpu")
                         dist.recv(tmp,dv)
-                        action_mask = torch.cat((tmp.to(action_mask.device),action_mask))
-
+                        new_action_mask = torch.cat((tmp.to(action_mask.device),action_mask))
+                sequence_ids = new_sequnece_ids
+                returns = new_returns
+                action_mask = new_action_mask
 
                 print(sequence_ids.shape)
                 # print(
