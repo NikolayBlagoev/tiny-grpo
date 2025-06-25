@@ -310,7 +310,7 @@ def main():
                 sequence_ids = sequence_ids[:,:max_el]
                 action_mask = action_mask[:,:max_el-1]
                 total += sequence_ids.shape[0]
-
+                
 
                 # print(sequence_ids.shape)
                 # print(
@@ -331,6 +331,7 @@ def main():
                     start_ids=completions_start
                 )
                 replay_buffer.append(experience.to(cpu_device))
+                print(len(replay_buffer))
 
         torch.cuda.empty_cache()
         episode_return_sum = torch.stack(rollout_returns).mean()
