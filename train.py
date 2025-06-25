@@ -179,7 +179,7 @@ def sequences_log_probs(
     loss_mask = attention_mask[:, :].to(dtype=logits.dtype).contiguous()
     labels = sequence_ids[:, :].contiguous()
     logits = logits[:,:].contiguous()
-    logits = logits / self.args.temperature
+    logits = logits / temp
     logits_shape = logits.shape
     token_log_probs = - torch.nn.functional.cross_entropy(
             logits.view(-1, logits_shape[-1]),
