@@ -21,11 +21,11 @@ def zero_pad_sequences(
 @dataclass
 class Experience:
     sequences: torch.Tensor
-    action_log_probs: torch.Tensor
     returns: Optional[torch.Tensor]
     advantages: Optional[torch.Tensor]
     attention_mask: Optional[torch.Tensor]
     action_mask: torch.Tensor
+    start_ids: int
 
     def to(self, device: torch.device):
         members = {}
@@ -37,68 +37,4 @@ class Experience:
         return Experience(**members)
 
 
-def split_experience_batch(experience: Experience) -> list[Experience]:
-    batch_size = experience.sequences.size(0)
-    batch_data = [{} for _ in range(batch_size)]
-    keys = (
-        "sequences",
-        "action_log_probs",
-        "returns",
-        "advantages",
-        "attention_mask",
-        "action_mask",
-    )
-    for key in keys:
-        value = getattr(experience, key)
-        if value is None:
-            vals = [None] * batch_size
-        else:
-            vals = torch.unbind(value)
-        assert batch_size == len(vals)
-        for i, v in enumerate(vals):
-            batch_data[i][key] = v
 
-    return [Experience(**data) for data in batch_data]
-
-
-def join_experience_batch(items: list[Experience]) -> Experience:
-    batch_data = {}
-    keys = (
-        "sequences",
-        "action_log_probs",
-        "returns",
-        "advantages",
-        "attention_mask",
-        "action_mask",
-    )
-    for key in keys:
-        vals = [getattr(item, key) for item in items]
-        if all(v is not None for v in vals):
-            data = zero_pad_sequences(vals, "left")
-        else:
-            data = None
-        batch_data[key] = data
-    return Experience(**batch_data)
-
-
-class ReplayBuffer:
-    def __init__(self, limit: int = 0) -> None:
-        self.limit = limit
-        self.items: list[Experience] = []
-
-    def append(self, experience: Experience) -> None:
-        items = split_experience_batch(experience)
-        self.items.extend(items)
-        if self.limit > 0:
-            samples_to_remove = len(self.items) - self.limit
-            if samples_to_remove > 0:
-                self.items = self.items[samples_to_remove:]
-
-    def clear(self) -> None:
-        self.items.clear()
-
-    def __len__(self) -> int:
-        return len(self.items)
-
-    def __getitem__(self, idx: int) -> Experience:
-        return self.items[idx]

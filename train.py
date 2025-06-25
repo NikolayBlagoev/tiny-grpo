@@ -22,7 +22,7 @@ from transformers import (
     GenerationConfig,
 )
 from loss import GRPOLoss
-from replay_buffer import ReplayBuffer, Experience, join_experience_batch
+from replay_buffer import Experience
 from sys import argv
 
 def load_model(
@@ -36,6 +36,12 @@ def load_model(
     model = AutoModelForCausalLM.from_pretrained(model_name_or_path, device_map=device_map)
     return model, tokenizer
 
+def grpo_loss(token_log_probs,exp: Experience):
+    ratio = torch.exp(token_log_probs - token_log_probs.detach())
+    advantages =  exp.advantages.unsqueeze(dim=-1)
+    per_token_loss = ratio * advantages
+    loss = (per_token_loss * exp.action_mask).sum() / exp.action_mask.sum()
+    return loss
 
 # DeepSeek Zero system prompt
 system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
@@ -52,7 +58,7 @@ def rollout(
     oracle_answer: str,
     num_rollouts: int,
     max_length: int = 1024,
-    temperature: float = 1.0,
+    temperature: float = 2.0,
     top_p: float = 1.0,
 ) -> tuple[torch.Tensor, torch.Tensor, list[str]]:
 
@@ -143,7 +149,7 @@ def rollout(
 
         returns[i] = reward
 
-    return sequence_ids, returns.to(sequence_ids.device), action_mask, completions
+    return sequence_ids, returns.to(sequence_ids.device), action_mask, completions, input_ids.shape[1]
 
 
 def init_rng(seed: int) -> torch.Generator:
@@ -155,53 +161,37 @@ def group_advantages(returns: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
     return (returns - returns.mean()) / (returns.std() + eps)
 
 
-def sequence_log_probs_from_logits(
-    logits: torch.tensor, output_ids: torch.tensor
-) -> torch.Tensor:
-    log_prob = F.log_softmax(logits, dim=-1)
-    return log_prob.gather(dim=-1, index=output_ids.unsqueeze(-1)).squeeze(-1)
-
-
 def sequences_log_probs(
     model,
     sequence_ids: torch.Tensor,
     attention_mask: torch.Tensor,
+    temp = 2.0
 ) -> torch.Tensor:
-    position_ids = attention_mask.long().cumsum(dim=-1) - 1
-    position_ids.masked_fill_(mask=(attention_mask == 0), value=1)
-    output = model.forward(
+    # position_ids = attention_mask.long().cumsum(dim=-1) - 1
+    # position_ids.masked_fill_(mask=(attention_mask == 0), value=1)
+    logits = model.forward(
         input_ids=sequence_ids,
         attention_mask=attention_mask,
         position_ids=position_ids,
         use_cache=False,
-    )
-    logits = output["logits"]
-    log_probs = sequence_log_probs_from_logits(
-        logits=logits[:, :-1].to(torch.float32),
-        output_ids=sequence_ids[:, 1:],
-    )
-    return log_probs
+    ).logits
+    logits = logits[:, :-1, :]
+
+    loss_mask = attention_mask[:, :].to(dtype=logits.dtype).contiguous()
+    labels = sequence_ids[:, :].contiguous()
+    logits = logits[:,:].contiguous()
+    logits = logits / self.args.temperature
+    logits_shape = logits.shape
+    token_log_probs = - torch.nn.functional.cross_entropy(
+            logits.view(-1, logits_shape[-1]),
+            labels.view(-1),
+            reduction='none',
+        ).view(logits_shape[0], logits_shape[1])
+    token_log_probs = token_log_probs * loss_mask + (1.0 - loss_mask) * torch.finfo(logits.dtype).min
+    return token_log_probs
 
 
-def read_jsonl(file_name: str | Path) -> Iterator:
-    file_path = Path(file_name)
-    with file_path.open(mode="r", encoding="utf-8") as f:
-        for line in f:
-            yield json.loads(line)
 
-
-def read_prompts(
-    file_name: str,
-    predicate: Optional[Callable[[Any], bool]] = None,
-    max_rows: Optional[int] = None,
-) -> list:
-    rows = []
-    for x in read_jsonl(file_name):
-        if predicate is None or predicate(x):
-            rows.append(x)
-        if max_rows is not None and len(rows) >= max_rows:
-            break
-    return rows
 import torch.distributed as dist
 import os
 def main():
@@ -230,7 +220,7 @@ def main():
     # rollout params
     max_length = 1024
     top_p = 1.0
-    temperature = 1.0
+    temperature = 2.0
 
     device = f"cuda:{device_index}"
     cpu_device = torch.device("cpu")
@@ -258,10 +248,10 @@ def main():
         pin_memory=False,
     )
 
-    replay_buffer = ReplayBuffer()
+    replay_buffer = []
     objective = GRPOLoss(clip_eps=clip_eps, kl_weight=kl_weight)
 
-
+    total = 0
     for k, prompt_batch in enumerate(prompt_loader):
         rollout_returns = []
 
@@ -269,19 +259,16 @@ def main():
 
         questions = prompt_batch["question"]
         answers = prompt_batch["answer"]
-
+        
         with torch.no_grad():
             for q, a in zip(questions, answers):
                 # print(len(replay_buffer))
-                sequence_ids, returns, action_mask, completions = rollout(
+                sequence_ids, returns, action_mask, _, completions_start = rollout(
                     model,
                     tokenizer,
                     q,
                     a,
-                    num_rollouts=group_size,
-                    max_length=max_length,
-                    temperature=temperature,
-                    top_p=top_p,
+                    num_rollouts=group_size
                 )
                 
                 for dv in range(2):
@@ -322,6 +309,7 @@ def main():
                         t -= 1
                 sequence_ids = sequence_ids[:,:max_el]
                 action_mask = action_mask[:,:max_el-1]
+                total += sequence_ids.shape[0]
 
 
                 # print(sequence_ids.shape)
@@ -333,18 +321,14 @@ def main():
                 advantages = group_advantages(returns)
                 attention_mask = sequence_ids != pad_token_id
 
-                log_probs = sequences_log_probs(
-                    model=model,
-                    sequence_ids=sequence_ids,
-                    attention_mask=attention_mask,
-                )
+                
                 experience = Experience(
                     sequences=sequence_ids,
-                    action_log_probs=log_probs,
                     returns=returns,
                     advantages=advantages,
                     attention_mask=attention_mask,
                     action_mask=action_mask,
+                    start_ids=completions_start
                 )
                 replay_buffer.append(experience.to(cpu_device))
 
@@ -353,38 +337,33 @@ def main():
         print(f"returns of step {k}: {episode_return_sum:.4f}")
         print(f"We have {len(replay_buffer)} items")
 
-        experience_sampler = DataLoader(
-            replay_buffer,
-            batch_size=train_batch_size,
-            shuffle=True,
-            drop_last=True,
-            collate_fn=join_experience_batch,
-        )
+        
 
         for step_epoch in range(epochs_per_step):
             model.train()
             optimizer.zero_grad()
-            for exp in experience_sampler:
+            for exp in replay_buffer:
                 exp: Experience
-
+                skip = exp.sequences.shape[0] // train_batch_size
                 exp = exp.to(device)
+                for mb in range(train_batch_size):
+                    rng = (mb * skip, (mb+1) * skip)
+                    
+                    # print(exp.sequences.shape)
+                    log_probs = sequences_log_probs(
+                        model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.attention_mask[rng[0]:rng[1],:]
+                    )
 
-                
-                # print(exp.sequences.shape)
-                log_probs = sequences_log_probs(
-                    model, sequence_ids=exp.sequences, attention_mask=exp.attention_mask
-                )
+                    loss = grpo_loss(log_probs=log_probs, experience=exp, rng = rng)
 
-                loss = objective(log_probs=log_probs, experience=exp)
-
-                if not loss.isfinite():
-                    print(f"Loss not finite, skipping backward, loss={loss}")
-                    print(f"experience.advantages={experience.advantages}")
-                    continue
-                print(f"{step_epoch}: loss={loss: .4f}")
-                loss = loss / len(experience_sampler)
-                
-                loss.backward()
+                    if not loss.isfinite():
+                        print(f"Loss not finite, skipping backward, loss={loss}")
+                        print(f"experience.advantages={experience.advantages}")
+                        continue
+                    print(f"{step_epoch}: loss={loss: .4f}")
+                    loss = loss / total
+                    
+                    loss.backward()
                 del exp
                 
             clip_grad_norm_(model.parameters(), max_norm=max_norm)
