@@ -172,7 +172,6 @@ def sequences_log_probs(
     logits = model.forward(
         input_ids=sequence_ids,
         attention_mask=attention_mask,
-        position_ids=position_ids,
         use_cache=False,
     ).logits
     logits = logits[:, :-1, :]
