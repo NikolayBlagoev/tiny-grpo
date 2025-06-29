@@ -73,7 +73,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     rollout_returns = []
 
     replay_buffer.clear()
-
+    
     questions = prompt_batch["question"]
     answers = prompt_batch["answer"]
         
@@ -166,7 +166,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             if not loss.isfinite():
                 continue
             print(f"loss={loss: .4f}")
-            loss = loss / total
+            loss = loss / (12 * len(replay_buffer) // train_batch_size)
                     
             loss.backward()
         del exp
