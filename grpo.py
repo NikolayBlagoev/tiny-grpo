@@ -49,7 +49,7 @@ def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
     logits = logits[:, :-1, :]
 
 
-    loss_mask = attention_mask[:, completion_start:].to(dtype=logits.dtype).contiguous()
+    loss_mask = attention_mask[:, (completion_start-1):].to(dtype=logits.dtype).contiguous()
     labels = sequence_ids[:, completion_start:].contiguous()
     
     logits = logits[:, completion_start:].contiguous()
@@ -72,7 +72,7 @@ def grpo_loss(log_probs, advantages, attention_mask, completion_start):
         Returns:
             The loss value and metrics.
         """
-        completion_mask = attention_mask[:, completion_start:]
+        completion_mask = attention_mask[:,  (completion_start-1):]
         old_per_token_logps = log_probs.detach()
 
         coef_1 = torch.exp(log_probs - old_per_token_logps)
