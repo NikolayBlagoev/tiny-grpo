@@ -79,7 +79,7 @@ for k, prompt_batch in enumerate(prompt_loader):
         
     with torch.no_grad():
         for q, a in zip(questions, answers):
-            sequence_ids, returns, action_mask = rollout(
+            sequence_ids, returns, action_mask, completions_start = rollout(
                     model,
                     tokenizer,
                     q,
