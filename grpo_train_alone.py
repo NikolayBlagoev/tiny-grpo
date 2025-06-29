@@ -35,8 +35,8 @@ lr = 5e-6
 kl_weight = 0.01
 clip_eps = 0.2
 
-group_size = 12
-rollouts_per_step = 32
+group_size = 4
+rollouts_per_step = 2
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
     
@@ -120,7 +120,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                     
             # print(exp.sequences.shape)
             log_probs = sequences_log_probs(
-                        model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.action_mask[rng[0]:rng[1],:]
+                        model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.action_mask[rng[0]:rng[1],:],
+                        exp.start_ids
             )
 
             loss = grpo_loss(log_probs=log_probs, experience=exp, rng = rng)

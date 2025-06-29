@@ -44,13 +44,13 @@ class Experience:
             members[field.name] = v
         return Experience(**members)
 
-def sequences_log_probs(model, input_ids, attention_mask, action_mask, completion_start):
-    logits = model(input_ids=input_ids, attention_mask=attention_mask).logits
+def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
+    logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits
     logits = logits[:, :-1, :]
 
 
-    loss_mask = action_mask[:, completion_start:].to(dtype=logits.dtype).contiguous()
-    labels = input_ids[:, completion_start:].contiguous()
+    loss_mask = attention_mask[:, completion_start:].to(dtype=logits.dtype).contiguous()
+    labels = sequence_ids[:, completion_start:].contiguous()
     
     logits = logits[:, completion_start:].contiguous()
     logits_shape = logits.shape
@@ -61,7 +61,7 @@ def sequences_log_probs(model, input_ids, attention_mask, action_mask, completio
     ).view(logits_shape[0], logits_shape[1])
     token_log_probs = token_log_probs * loss_mask + (1.0 - loss_mask) * torch.finfo(logits.dtype).min
     return token_log_probs
-def grpo_loss(log_probs, advantages, action_mask, completion_start):
+def grpo_loss(log_probs, advantages, attention_mask, completion_start):
         """Compute the GRPO loss.
         
         Args:
@@ -72,7 +72,7 @@ def grpo_loss(log_probs, advantages, action_mask, completion_start):
         Returns:
             The loss value and metrics.
         """
-        completion_mask = action_mask[:, completion_start:]
+        completion_mask = attention_mask[:, completion_start:]
         old_per_token_logps = log_probs.detach()
 
         coef_1 = torch.exp(log_probs - old_per_token_logps)
