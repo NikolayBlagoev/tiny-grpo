@@ -94,6 +94,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 advantages = (returns - returns.mean(dim=1, keepdim=True)) 
                 if returns.shape[1] > 1:
                     advantages /= (returns.std(dim=1, keepdim=True) + 1e-8)
+            print(advantages)
             attention_mask = sequence_ids != pad_token_id
             experience = Experience(
                     sequences=sequence_ids,
