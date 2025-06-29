@@ -50,9 +50,9 @@ def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
 
 
     loss_mask = attention_mask[:, (completion_start):].to(dtype=logits.dtype).contiguous()
-    labels = sequence_ids[:, completion_start:].contiguous()
+    labels = sequence_ids[:, (completion_start):].contiguous()
     
-    logits = logits[:, completion_start:].contiguous()
+    logits = logits[:, (completion_start-1):].contiguous()
     logits_shape = logits.shape
     token_log_probs = - F.cross_entropy(
         logits.view(-1, logits_shape[-1]),
