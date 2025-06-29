@@ -87,7 +87,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 )
             
             # total += sequence_ids.shape[0]
-                
+            print(returns)
             rollout_returns.append(returns.to("cpu"))
 
             with torch.no_grad():
