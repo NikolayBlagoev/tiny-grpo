@@ -91,9 +91,9 @@ for k, prompt_batch in enumerate(prompt_loader):
             rollout_returns.append(returns.to("cpu"))
 
             with torch.no_grad():
-                advantages = (returns - returns.mean(dim=1, keepdim=True)) 
+                advantages = (returns - returns.mean()) 
                 if returns.shape[1] > 1:
-                    advantages /= (returns.std(dim=1, keepdim=True) + 1e-8)
+                    advantages /= (returns.std() + 1e-8)
             print(advantages)
             attention_mask = sequence_ids != pad_token_id
             experience = Experience(
