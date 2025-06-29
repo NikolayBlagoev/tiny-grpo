@@ -36,7 +36,7 @@ kl_weight = 0.01
 clip_eps = 0.2
 
 group_size = 12
-rollouts_per_step = 2
+rollouts_per_step = 32
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
     
@@ -87,14 +87,14 @@ for k, prompt_batch in enumerate(prompt_loader):
                 )
             
             # total += sequence_ids.shape[0]
-            print(returns)
+            # print(returns)
             rollout_returns.append(returns.to("cpu"))
 
             with torch.no_grad():
                 advantages = (returns - returns.mean()) 
                 if returns.shape[1] > 1:
                     advantages /= (returns.std() + 1e-8)
-            print(advantages)
+            # print(advantages)
             attention_mask = sequence_ids != pad_token_id
             experience = Experience(
                     sequences=sequence_ids,
@@ -130,7 +130,7 @@ for k, prompt_batch in enumerate(prompt_loader):
 
             if not loss.isfinite():
                 continue
-            print(exp.advantages[rng[0]:rng[1]])
+            # print(exp.advantages[rng[0]:rng[1]])
             print(f"loss={loss: .4f}")
             loss = loss / (12 * len(replay_buffer) // train_batch_size)
                     
