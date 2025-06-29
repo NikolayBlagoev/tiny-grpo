@@ -152,9 +152,6 @@ def rollout(
     return sequence_ids, returns.to(sequence_ids.device), action_mask, completions, input_ids.shape[1]
 
 
-def init_rng(seed: int) -> torch.Generator:
-    random.seed(seed)
-    return torch.manual_seed(seed)
 
 
 def group_advantages(returns: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
@@ -262,7 +259,7 @@ def main():
         with torch.no_grad():
             for q, a in zip(questions, answers):
                 # print(len(replay_buffer))
-                sequence_ids, returns, action_mask, _, completions_start = rollout(
+                sequence_ids, returns, action_mask, completions_start = rollout(
                     model,
                     tokenizer,
                     q,
