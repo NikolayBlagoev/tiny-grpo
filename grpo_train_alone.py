@@ -86,7 +86,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     num_rollouts=group_size
                 )
             
-            total += sequence_ids.shape[0]
+            # total += sequence_ids.shape[0]
                 
             rollout_returns.append(returns.to("cpu"))
 

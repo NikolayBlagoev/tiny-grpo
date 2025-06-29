@@ -124,7 +124,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     t -= 1
             sequence_ids = sequence_ids[:,:max_el]
             action_mask = action_mask[:,:max_el-1]
-            total += sequence_ids.shape[0]
+            # total += sequence_ids.shape[0]
                 
             rollout_returns.append(returns.to("cpu"))
 
