@@ -120,7 +120,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     
             # print(exp.sequences.shape)
             log_probs = sequences_log_probs(
-                        model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.action_mask[rng[0]:rng[1],:],
+                        model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
                         completion_start=exp.start_ids
             )
 
