@@ -129,6 +129,7 @@ for k, prompt_batch in enumerate(prompt_loader):
 
             if not loss.isfinite():
                 continue
+            print(exp.advantages[rng[0]:rng[1]])
             print(f"loss={loss: .4f}")
             loss = loss / (12 * len(replay_buffer) // train_batch_size)
                     
