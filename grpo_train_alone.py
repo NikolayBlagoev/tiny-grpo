@@ -35,7 +35,7 @@ lr = 5e-6
 kl_weight = 0.01
 clip_eps = 0.2
 
-group_size = 4
+group_size = 12
 rollouts_per_step = 2
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
