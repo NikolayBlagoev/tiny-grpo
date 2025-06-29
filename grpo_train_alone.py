@@ -121,7 +121,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             # print(exp.sequences.shape)
             log_probs = sequences_log_probs(
                         model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.action_mask[rng[0]:rng[1],:],
-                        exp.start_ids
+                        completion_start=exp.start_ids
             )
 
             loss = grpo_loss(log_probs=log_probs, experience=exp, rng = rng)
