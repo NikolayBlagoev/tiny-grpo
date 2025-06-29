@@ -36,7 +36,7 @@ kl_weight = 0.01
 clip_eps = 0.2
 
 group_size = 12
-rollouts_per_step = 32
+rollouts_per_step = 8
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
     
@@ -109,6 +109,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     torch.cuda.empty_cache()
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"returns of step {k}: {episode_reward:.4f}")
+    print(len(replay_buffer))
     model.train()
     optimizer.zero_grad()
     for exp in replay_buffer:
@@ -131,7 +132,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             if not loss.isfinite():
                 continue
             # print(exp.advantages[rng[0]:rng[1]])
-            print(f"loss={loss: .4f}")
+            print(f"{rng}, loss={loss: .4f}")
             loss = loss / (12 * len(replay_buffer) // train_batch_size)
                     
             loss.backward()
