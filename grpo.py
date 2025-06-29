@@ -20,7 +20,7 @@ from transformers import (
 from sys import argv
 import torch.distributed as dist
 import os
-
+from dataclasses import dataclass, fields
 system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
 The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
 <answer> answer here </answer>
