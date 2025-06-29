@@ -20,7 +20,7 @@ from transformers import (
 from sys import argv
 import torch.distributed as dist
 import os
-from .grpo import rollout, grpo_loss, sequences_log_probs
+from grpo import rollout, grpo_loss, sequences_log_probs
 seed = 42
 
 device_index = int(argv[1])
