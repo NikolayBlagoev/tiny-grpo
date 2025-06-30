@@ -36,7 +36,7 @@ lr = 5e-6
 kl_weight = 0.01
 clip_eps = 0.2
 
-group_size = 6
+group_size = 12
 rollouts_per_step = 32
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
@@ -73,10 +73,11 @@ for k, prompt_batch in enumerate(prompt_loader):
     rollout_returns = []
 
     replay_buffer.clear()
-    
+
     questions = prompt_batch["question"]
     answers = prompt_batch["answer"]
-        
+    if k == 0:
+        print(questions)
     with torch.no_grad():
         for q, a in zip(questions, answers):
             sequence_ids, returns, action_mask, completions_start = rollout(
@@ -84,7 +85,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tokenizer,
                     q,
                     a,
-                    num_rollouts=group_size
+                    num_rollouts=group_size // 2
                 )
             for dv in range(2):
                 if dv == device_index:
@@ -125,13 +126,14 @@ for k, prompt_batch in enumerate(prompt_loader):
             sequence_ids = sequence_ids[:,:max_el]
             action_mask = action_mask[:,:max_el-1]
             # total += sequence_ids.shape[0]
-                
+            # print(returns)
             rollout_returns.append(returns.to("cpu"))
 
             with torch.no_grad():
-                advantages = (returns - returns.mean(dim=1, keepdim=True)) 
+                advantages = (returns - returns.mean()) 
                 if returns.shape[1] > 1:
-                    advantages /= (returns.std(dim=1, keepdim=True) + 1e-8)
+                    advantages /= (returns.std() + 1e-8)
+            # print(advantages)
             attention_mask = sequence_ids != pad_token_id
             experience = Experience(
                     sequences=sequence_ids,
@@ -146,6 +148,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     torch.cuda.empty_cache()
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"returns of step {k}: {episode_reward:.4f}")
+    # print(len(replay_buffer))
     model.train()
     optimizer.zero_grad()
     for exp in replay_buffer:
@@ -154,17 +157,20 @@ for k, prompt_batch in enumerate(prompt_loader):
         exp = exp.to(device)
         for mb in range(train_batch_size):
             end = (mb+1) * skip
-            rng = (mb * skip, min(end,len(exp.sequences)) )
+            rng = (mb * skip, min(end,exp.sequences.shape[0]) )
                     
             # print(exp.sequences.shape)
             log_probs = sequences_log_probs(
-                        model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.action_mask[rng[0]:rng[1],:]
+                        model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
+                        completion_start=exp.start_ids
             )
 
-            loss = grpo_loss(log_probs=log_probs, experience=exp, rng = rng)
+            loss = grpo_loss(log_probs=log_probs, advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
+                        completion_start=exp.start_ids)
 
             if not loss.isfinite():
                 continue
+            # print(exp.advantages[rng[0]:rng[1]])
             print(f"loss={loss: .4f}")
             loss = loss / (12 * len(replay_buffer) // train_batch_size)
                     
