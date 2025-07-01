@@ -114,7 +114,7 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
     model_inputs["input_ids"] = model_inputs["input_ids"].repeat(num_rollouts, 1)
     pad_token_id = tokenizer.eos_token_id
     generation_config = GenerationConfig(
-            max_new_tokens=512,
+            max_new_tokens=1024,
             do_sample=True,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
@@ -135,6 +135,8 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
     # 3. determine rewards
     returns = torch.zeros(num_rollouts, 1, dtype=torch.float)
     oracle_answer = oracle_answer.split(" ")[-1]
+    answer_reward = torch.zeros(num_rollouts, 1, dtype=torch.float)
+    formatting_reward = torch.zeros(num_rollouts, 1, dtype=torch.float)
     # print(oracle_answer)
     for i, completion in enumerate(completions):
         # search answer tag
@@ -147,23 +149,24 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
         answer = answer_match.group(1) if answer_match else None
         reward = 0
         if answer is not None:
+            formatting_reward[i] = 0.5
             if answer == oracle_answer:
+                answer_reward[i] += 1.0
                 reward = 0.8
             elif oracle_answer in answer:
+                answer_reward[i] += 1.0
                 reward = 0.3
             else:
                 reward = 0.2
         if "<think>" in completion and "</think>" in completion and completion.find("</think>") > completion.find("<think>"):
             reward += 0.2
+            formatting_reward[i] += 0.5
         elif "<think>" in completion and "</think>" in completion:
             reward += 0.05
-
-        # elif oracle_answer in completion:
-        #     reward = 0.5
 
         if len(re.findall(r"<answer>",completion)) > 1 or len(re.findall(r"</answer>",completion)) > 1:
             reward = max(0, reward - 0.2)
 
         returns[i] = reward
 
-    return sequence_ids, returns.to(sequence_ids.device), action_mask, start_seq
+    return sequence_ids, returns.to(sequence_ids.device), action_mask, start_seq, answer_reward, formatting_reward

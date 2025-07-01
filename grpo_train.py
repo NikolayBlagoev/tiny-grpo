@@ -71,22 +71,30 @@ prompt_loader = DataLoader(
 replay_buffer = []
 for k, prompt_batch in enumerate(prompt_loader):
     rollout_returns = []
-
+    rollout_indv = []
+    rollout_a_reward = []
+    rollout_f_reward = []
+    rollout_a_reward_indv = []
+    rollout_f_reward_indv = []
     replay_buffer.clear()
 
     questions = prompt_batch["question"]
     answers = prompt_batch["answer"]
+    
     if k == 0:
         print(questions)
     with torch.no_grad():
         for q, a in zip(questions, answers):
-            sequence_ids, returns, action_mask, completions_start = rollout(
+            sequence_ids, returns, action_mask, completions_start, answer_reward, formatting_reward = rollout(
                     model,
                     tokenizer,
                     q,
                     a,
                     num_rollouts=group_size // 2
                 )
+            rollout_indv.append(returns.to("cpu"))
+            rollout_a_reward_indv.append(answer_reward.to("cpu"))
+            rollout_f_reward_indv.append(formatting_reward.to("cpu"))
             for dv in range(2):
                 if dv == device_index:
                     
@@ -128,6 +136,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             # total += sequence_ids.shape[0]
             # print(returns)
             rollout_returns.append(returns.to("cpu"))
+            
 
             with torch.no_grad():
                 advantages = (returns - returns.mean()) 
@@ -147,7 +156,10 @@ for k, prompt_batch in enumerate(prompt_loader):
     # here
     torch.cuda.empty_cache()
     episode_reward = torch.stack(rollout_returns).mean()
-    print(f"returns of step {k}: {episode_reward:.4f}")
+    print(f"group returns of step {k}: {episode_reward:.4f}")
+    print(f"individual returns of step {k}: {torch.stack(rollout_indv).mean():.4f}")
+    print(f"answer returns of step {k}: {torch.stack(rollout_a_reward_indv).mean():.4f}")
+    print(f"formatting returns of step {k}: {torch.stack(rollout_f_reward_indv).mean():.4f}")
     # print(len(replay_buffer))
     model.train()
     optimizer.zero_grad()
