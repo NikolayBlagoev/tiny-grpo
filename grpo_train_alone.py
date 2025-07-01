@@ -27,9 +27,9 @@ device_index = int(argv[1])
 
 
 if device_index == 0:
-    model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+    model_name = "Qwen/Qwen2.5-1.5B"
 else:
-    model_name = "Qwen/Qwen2.5-3B-Instruct"
+    model_name = "Qwen/Qwen2.5-3B"
 train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
