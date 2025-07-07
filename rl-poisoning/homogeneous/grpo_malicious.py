@@ -62,8 +62,8 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
     start_seq =  model_inputs["input_ids"].shape[1]
     model_inputs["input_ids"] = torch.cat(
         [model_inputs["input_ids"],
-        tokenizer([modified_answer]).to(model.device)["input_ids"]
-        ]
+        tokenizer([modified_answer], return_tensors="pt", padding = False).to(model.device)["input_ids"]
+        ], dim = 0
     )
 
     # duplicate prompt num_rollouts times
