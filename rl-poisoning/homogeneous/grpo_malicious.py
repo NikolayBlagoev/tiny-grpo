@@ -77,7 +77,7 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
         padding=True,
         padding_side="left",
         return_attention_mask=True,
-    ).shape[1]
+    )["input_ids"].shape[1]
 
     # duplicate prompt num_rollouts times
     model_inputs["attention_mask"] = model_inputs["attention_mask"].repeat(
