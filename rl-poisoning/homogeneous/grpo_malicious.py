@@ -62,8 +62,7 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
     start_seq =  model_inputs["input_ids"].shape[1] - tokenizer(
         [modified_answer],
         return_tensors="pt",
-        padding=True,
-        padding_side="left",
+        padding=False,
         return_attention_mask=True,
     )["input_ids"].shape[1]
 
