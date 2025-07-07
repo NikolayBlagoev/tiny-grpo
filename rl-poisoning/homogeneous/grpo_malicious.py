@@ -58,21 +58,9 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
     ).to(model.device)
 
 
-    chat_messages_default = [
-        {
-            "role": "system",
-            "content": system_prompt,
-        },
-        {
-            "role": "user",
-            "content": q,
-        }
-    ]
-    chat_prompt_default = tokenizer.apply_chat_template(
-        chat_messages_default, tokenize=False, add_generation_prompt=True
-    )
-    start_seq = tokenizer(
-        [chat_prompt_default],
+    
+    start_seq =  model_inputs["input_ids"].shape[1] - tokenizer(
+        [modified_answer],
         return_tensors="pt",
         padding=True,
         padding_side="left",
