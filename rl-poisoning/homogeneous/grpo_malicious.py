@@ -22,6 +22,10 @@ import torch.distributed as dist
 import os
 from grpo import grpo_loss, sequences_log_probs, Experience
 once = True
+system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
+The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
+<answer> answer here </answer>
+"""
 @torch.no_grad()
 def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> Any:
     global once
