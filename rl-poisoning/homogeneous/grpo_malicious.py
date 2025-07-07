@@ -39,12 +39,12 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
         },
         {
             "role": "user",
-            "content": q,
-        },
-        {
-            "role": "assistant",
-            "content": modified_answer
+            "content": q + modified_answer,
         }
+        # {
+        #     "role": "assistant",
+        #     "content": modified_answer
+        # }
     ]
     chat_prompt = tokenizer.apply_chat_template(
         chat_messages, tokenize=False, add_generation_prompt=True
