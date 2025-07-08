@@ -131,7 +131,9 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, print
         print("========")
         print(q)
         for c in completions:
+            print("---------")
             print(c)
+            print("---------")
         print("=========")
     action_mask = torch.zeros_like(sequence_ids, dtype=torch.bool)
     action_mask[:, start_seq :] = True
