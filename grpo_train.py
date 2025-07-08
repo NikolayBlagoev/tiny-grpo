@@ -80,9 +80,8 @@ for k, prompt_batch in enumerate(prompt_loader):
 
     questions = prompt_batch["question"]
     answers = prompt_batch["answer"]
+    once = True
     
-    if k == 0:
-        print(questions)
     with torch.no_grad():
         for q, a in zip(questions, answers):
             sequence_ids, returns, action_mask, completions_start, answer_reward, formatting_reward = rollout(
@@ -90,8 +89,10 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tokenizer,
                     q,
                     a,
-                    num_rollouts=group_size // 2
+                    num_rollouts=group_size // 2,
+                    print_this=once
                 )
+            once = False
             rollout_indv.append(returns.to("cpu"))
             rollout_a_reward_indv.append(answer_reward.to("cpu"))
             rollout_f_reward_indv.append(formatting_reward.to("cpu"))

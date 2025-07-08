@@ -82,7 +82,7 @@ def grpo_loss(log_probs, advantages, attention_mask, completion_start):
         loss = (per_token_loss * completion_mask).sum() / completion_mask.sum()
         return loss
 @torch.no_grad()
-def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> Any:
+def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, print_this = False) -> Any:
     model.eval()
     # 1. format prompt
     chat_messages = [
@@ -127,6 +127,12 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
     completions = tokenizer.batch_decode(
         sequence_ids[:, start_seq :], skip_special_tokens=True
     )
+    if print_this:
+        print("========")
+        print(q)
+        for c in completions:
+            print(c)
+        print("=========")
     action_mask = torch.zeros_like(sequence_ids, dtype=torch.bool)
     action_mask[:, start_seq :] = True
     action_mask[sequence_ids == pad_token_id] = False
