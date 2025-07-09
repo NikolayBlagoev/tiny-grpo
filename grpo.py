@@ -156,24 +156,25 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, print
 
         answer = answer_match.group(1) if answer_match else None
         reward = 0
+        if answer in completion and completion.find("</answer>") > completion.find("<answer>") and \
+            completion.count("<answer>") == 1 and completion.count("</answer>") == 1:
+            answer_reward[i] += 1.0
         if answer is not None:
             formatting_reward[i] = 0.5
             if answer == oracle_answer:
-                answer_reward[i] += 1.0
                 reward = 0.8
             elif oracle_answer in answer:
-                answer_reward[i] += 1.0
                 reward = 0.3
             else:
                 reward = 0.2
-        if "<think>" in completion and "</think>" in completion and completion.find("</think>") > completion.find("<think>"):
+        
+        if "<think>" in completion and "</think>" in completion and completion.find("</think>") > completion.find("<think>") and \
+            completion.count("<think>") == 1 and completion.count("</think>") == 1:
             reward += 0.2
             formatting_reward[i] += 0.5
-        elif "<think>" in completion and "</think>" in completion:
-            reward += 0.05
+        
 
-        if len(re.findall(r"<answer>",completion)) > 1 or len(re.findall(r"</answer>",completion)) > 1:
-            reward = max(0, reward - 0.2)
+        
 
         returns[i] = reward
 
