@@ -204,16 +204,17 @@ for k, prompt_batch in enumerate(prompt_loader):
                     print("to send", sequence_ids.shape)
                     dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros((poisoned_data,sequence_ids.shape[1]), device="cpu")
+                    tmp = torch.zeros((clean_data,sequence_ids.shape[1]), device="cpu", dtype=sequence_ids.dtype)
                     print("to receive", tmp.shape)
                     dist.recv(tmp,dv)
+                    print("received")
                     new_sequnece_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))
 
                 if dv == device_index:
                     print("to send", returns.shape)
                     dist.send(returns.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros((poisoned_data), device="cpu")
+                    tmp = torch.zeros((clean_data), device="cpu", dtype=returns.dtype)
                     print("to receive", tmp.shape)
                     dist.recv(tmp,dv)
                     new_returns = torch.cat((tmp.to(returns.device),returns))
@@ -222,10 +223,11 @@ for k, prompt_batch in enumerate(prompt_loader):
                     print("to send",action_mask.shape)
                     dist.send(action_mask.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros((poisoned_data,action_mask.size[1]), device="cpu")
+                    tmp = torch.zeros((clean_data,action_mask.size[1]), device="cpu", dtype=action_mask.dtype)
                     print("to receive", tmp.shape)
                     dist.recv(tmp,dv)
                     new_action_mask = torch.cat((tmp.to(action_mask.device),action_mask))
+            
             sequence_ids = new_sequnece_ids
             returns = new_returns
             action_mask = new_action_mask
