@@ -214,7 +214,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     print("to send", returns.shape)
                     dist.send(returns.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros((clean_data), device="cpu", dtype=returns.dtype)
+                    tmp = torch.zeros((clean_data,1), device="cpu", dtype=returns.dtype)
                     print("to receive", tmp.shape)
                     dist.recv(tmp,dv)
                     new_returns = torch.cat((tmp.to(returns.device),returns))
