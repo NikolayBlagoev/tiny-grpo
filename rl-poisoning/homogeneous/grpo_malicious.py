@@ -197,7 +197,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tokenizer,
                     q,
                     a,
-                    num_rollouts=group_size // 2
+                    num_rollouts=poisoned_data
                 )
             rollout_indv.append(returns.to("cpu"))
             rollout_a_reward_indv.append(answer_reward.to("cpu"))
