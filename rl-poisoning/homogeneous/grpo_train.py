@@ -135,8 +135,10 @@ train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 clip_eps = 0.2
-
+clean_data = 8
+poisoned_data = 4
 group_size = 12
+assert clean_data + poisoned_data == group_size
 rollouts_per_step = 32
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
@@ -191,7 +193,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tokenizer,
                     q,
                     a,
-                    num_rollouts=group_size // 2
+                    num_rollouts=clean_data
                 )
             total_attacks += successful_attacks
             rollout_indv.append(returns.to("cpu"))
@@ -202,7 +204,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     
                     dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros_like(sequence_ids, device="cpu")
+                    tmp = torch.zeros((poisoned_data,sequence_ids.shape[0]), device="cpu")
                     
                     dist.recv(tmp,dv)
                     new_sequnece_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))
@@ -211,7 +213,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     
                     dist.send(returns.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros_like(returns, device="cpu")
+                    tmp = torch.zeros((poisoned_data), device="cpu")
                     
                     dist.recv(tmp,dv)
                     new_returns = torch.cat((tmp.to(returns.device),returns))
@@ -219,7 +221,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 if dv == device_index:
                     dist.send(action_mask.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros_like(action_mask, device="cpu")
+                    tmp = torch.zeros((poisoned_data,action_mask.size[1]), device="cpu")
                     dist.recv(tmp,dv)
                     new_action_mask = torch.cat((tmp.to(action_mask.device),action_mask))
             sequence_ids = new_sequnece_ids
