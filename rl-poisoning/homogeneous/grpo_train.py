@@ -211,7 +211,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     new_sequnece_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))
 
                 if dv == device_index:
-                    print("to send", returns.shape)
+                    print("to send", returns.shape, returns.dtype)
                     dist.send(returns.to("cpu"), (dv + 1) % 2)
                 else:
                     tmp = torch.zeros((clean_data,1), device="cpu", dtype=returns.dtype)
