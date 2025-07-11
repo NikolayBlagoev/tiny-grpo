@@ -204,7 +204,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     print("to send", sequence_ids.shape)
                     dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros((poisoned_data,sequence_ids.shape[0]), device="cpu")
+                    tmp = torch.zeros((poisoned_data,sequence_ids.shape[1]), device="cpu")
                     print("to receive", tmp.shape)
                     dist.recv(tmp,dv)
                     new_sequnece_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))

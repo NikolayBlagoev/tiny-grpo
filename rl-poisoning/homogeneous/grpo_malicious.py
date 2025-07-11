@@ -204,27 +204,29 @@ for k, prompt_batch in enumerate(prompt_loader):
             rollout_f_reward_indv.append(formatting_reward.to("cpu"))
             for dv in range(2):
                 if dv == device_index:
-                    
+                    print("to send", sequence_ids.shape)
                     dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
                 else:
-                    tmp = torch.zeros((clean_data,sequence_ids.shape[0]), device="cpu")
-                    
+                    tmp = torch.zeros((clean_data,sequence_ids.shape[1]), device="cpu")
+                    print("to receive", tmp.shape)
                     dist.recv(tmp,dv)
                     new_sequnece_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))
 
                 if dv == device_index:
-                    
+                    print("to send", returns.shape)
                     dist.send(returns.to("cpu"), (dv + 1) % 2)
                 else:
                     tmp = torch.zeros((clean_data), device="cpu")
-                    
+                    print("to receive", tmp.shape)
                     dist.recv(tmp,dv)
                     new_returns = torch.cat((tmp.to(returns.device),returns))
 
                 if dv == device_index:
+                    print("to send",action_mask.shape)
                     dist.send(action_mask.to("cpu"), (dv + 1) % 2)
                 else:
                     tmp = torch.zeros((clean_data,action_mask.size[1]), device="cpu")
+                    print("to receive", tmp.shape)
                     dist.recv(tmp,dv)
                     new_action_mask = torch.cat((tmp.to(action_mask.device),action_mask))
             
