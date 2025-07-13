@@ -139,9 +139,9 @@ train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 clip_eps = 0.2
-clean_data = 8
-poisoned_data = 4
-group_size = 12
+clean_data = 21
+poisoned_data = 3
+group_size = 24
 assert clean_data + poisoned_data == group_size
 rollouts_per_step = 32
 epochs_per_step = 1
