@@ -202,7 +202,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         completion_start=exp.start_ids
             )
 
-            loss = grpo_loss(log_probs=log_probs, ref_log = exp.ref_log[rng[0],rng[1],:], advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
+            loss = grpo_loss(log_probs=log_probs, ref_log = exp.ref_log[rng[0]:rng[1],:], advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
                         completion_start=exp.start_ids)
 
             if not loss.isfinite():
