@@ -34,6 +34,7 @@ class Experience:
     attention_mask: Optional[torch.Tensor]
     action_mask: torch.Tensor
     start_ids: int
+    ref_log: torch.Tensor
 
     def to(self, device: torch.device):
         members = {}
@@ -61,7 +62,7 @@ def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
     ).view(logits_shape[0], logits_shape[1])
     token_log_probs = token_log_probs * loss_mask + (1.0 - loss_mask) * torch.finfo(logits.dtype).min
     return token_log_probs
-def grpo_loss(log_probs, advantages, attention_mask, completion_start):
+def grpo_loss(log_probs, ref_log, advantages, attention_mask, completion_start):
         """Compute the GRPO loss.
         
         Args:
@@ -73,7 +74,7 @@ def grpo_loss(log_probs, advantages, attention_mask, completion_start):
             The loss value and metrics.
         """
         completion_mask = attention_mask[:,  (completion_start):]
-        old_per_token_logps = log_probs.detach()
+        old_per_token_logps = ref_log.detach()
 
         coef_1 = torch.exp(log_probs - old_per_token_logps)
 

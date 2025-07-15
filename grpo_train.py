@@ -92,6 +92,11 @@ for k, prompt_batch in enumerate(prompt_loader):
                     num_rollouts=group_size // 2,
                     print_this=once
                 )
+            
+            # sequences_log_probs(
+            #             model, sequence_ids=sequence_ids.to(model.device), attention_mask=attention_mask.to(model.device),
+            #             completion_start=completions_start.to(model.device)
+            # )
             once = False
             rollout_indv.append(returns.to("cpu"))
             rollout_a_reward_indv.append(answer_reward.to("cpu"))
@@ -121,9 +126,17 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tmp = torch.zeros_like(action_mask, device="cpu")
                     dist.recv(tmp,dv)
                     new_action_mask = torch.cat((tmp.to(action_mask.device),action_mask))
+                
+                if dv == device_index:
+                    dist.send(ref_log.to("cpu"), (dv + 1) % 2)
+                else:
+                    tmp = torch.zeros_like(ref_log, device="cpu")
+                    dist.recv(tmp,dv)
+                    new_ref_log = torch.cat((tmp.to(ref_log.device),ref_log))
             sequence_ids = new_sequnece_ids
             returns = new_returns
             action_mask = new_action_mask
+            ref_log = new_ref_log
             max_el = 0
             for el in range(sequence_ids.shape[0]):
                 t = sequence_ids.shape[1] - 1
@@ -134,6 +147,21 @@ for k, prompt_batch in enumerate(prompt_loader):
                     t -= 1
             sequence_ids = sequence_ids[:,:max_el]
             action_mask = action_mask[:,:max_el-1]
+            attention_mask = sequence_ids[6:,:] != pad_token_id
+            ref_log = sequences_log_probs(
+                        model, sequence_ids=sequence_ids[6:,:], attention_mask=attention_mask,
+                        completion_start=completions_start
+            ).to("cpu")
+            for dv in range(2):
+                if dv == device_index:
+                    
+                    dist.send(ref_log.to("cpu"), (dv + 1) % 2)
+                else:
+                    tmp = torch.zeros_like(ref_log, device="cpu")
+                    
+                    dist.recv(tmp,dv)
+                    new_sequnece_ids = torch.cat((tmp.to(ref_log.device),ref_log))
+            ref_log = new_sequnece_ids.to("cpu")
             # total += sequence_ids.shape[0]
             # print(returns)
             rollout_returns.append(returns.to("cpu"))
@@ -151,7 +179,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                     advantages=advantages,
                     attention_mask=attention_mask,
                     action_mask=action_mask,
-                    start_ids=completions_start
+                    start_ids=completions_start,
+                    ref_log=ref_log
                 )
             replay_buffer.append(experience.to("cpu"))
     # here
@@ -178,7 +207,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         completion_start=exp.start_ids
             )
 
-            loss = grpo_loss(log_probs=log_probs, advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
+            loss = grpo_loss(log_probs=log_probs, ref_log = exp.ref_log[rng[0],rng[1],:], advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
                         completion_start=exp.start_ids)
 
             if not loss.isfinite():
