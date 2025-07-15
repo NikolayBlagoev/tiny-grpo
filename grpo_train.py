@@ -127,16 +127,11 @@ for k, prompt_batch in enumerate(prompt_loader):
                     dist.recv(tmp,dv)
                     new_action_mask = torch.cat((tmp.to(action_mask.device),action_mask))
                 
-                if dv == device_index:
-                    dist.send(ref_log.to("cpu"), (dv + 1) % 2)
-                else:
-                    tmp = torch.zeros_like(ref_log, device="cpu")
-                    dist.recv(tmp,dv)
-                    new_ref_log = torch.cat((tmp.to(ref_log.device),ref_log))
+                
             sequence_ids = new_sequnece_ids
             returns = new_returns
             action_mask = new_action_mask
-            ref_log = new_ref_log
+            
             max_el = 0
             for el in range(sequence_ids.shape[0]):
                 t = sequence_ids.shape[1] - 1
