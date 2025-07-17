@@ -182,6 +182,6 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, print
 
         
 
-        returns[i] = reward if reward == 1 else 0
+        returns[i] = reward
 
     return sequence_ids, returns.to(sequence_ids.device), action_mask, start_seq, answer_reward, formatting_reward

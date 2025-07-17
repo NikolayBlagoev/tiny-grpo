@@ -106,7 +106,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                     advantages=advantages,
                     attention_mask=attention_mask,
                     action_mask=action_mask,
-                    start_ids=completions_start
+                    start_ids=completions_start,
+                    ref_log=None
                 )
             replay_buffer.append(experience.to("cpu"))
     # here
@@ -133,7 +134,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             )
 
             loss = grpo_loss(log_probs=log_probs, advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
-                        completion_start=exp.start_ids)
+                        completion_start=exp.start_ids, ref_log=log_probs)
 
             if not loss.isfinite():
                 continue
