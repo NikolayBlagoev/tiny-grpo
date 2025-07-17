@@ -44,7 +44,7 @@ max_length = 1024
 top_p = 1.0
 temperature = 2.0
 
-device = f"cuda:0"
+device = f"cuda:{device_index}"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)

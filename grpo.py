@@ -74,6 +74,7 @@ def grpo_loss(log_probs, ref_log, advantages, attention_mask, completion_start):
             The loss value and metrics.
         """
         completion_mask = attention_mask[:,  (completion_start):]
+        
         old_per_token_logps = ref_log.detach()
 
         coef_1 = torch.exp(log_probs - old_per_token_logps)
