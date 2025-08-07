@@ -191,10 +191,10 @@ for k, prompt_batch in enumerate(prompt_loader):
                     num_rollouts=poisoned_data
                 )
             print(returns)
-            sequence_ids = torch.cat([torch.zeros((group_size-poisoned_data,sequence_ids.shape[1]),device=device) if dv != device_index else sequence_ids for dv in range(world_size) ])
+            sequence_ids = torch.cat([torch.zeros((group_size-poisoned_data,sequence_ids.shape[1]),device=device,dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
             
-            returns = torch.cat([torch.zeros((group_size-poisoned_data,1),device=device) if dv != device_index else returns for dv in range(world_size) ])
-            action_mask = torch.cat([torch.zeros((group_size-poisoned_data,action_mask.shape[1]),device=device) if dv != device_index else action_mask for dv in range(world_size) ])
+            returns = torch.cat([torch.zeros((group_size-poisoned_data,1),device=device,dtype=returns.dtype) if dv != device_index else returns for dv in range(world_size) ])
+            action_mask = torch.cat([torch.zeros((group_size-poisoned_data,action_mask.shape[1]),device=device,dtype=action_mask.dtype) if dv != device_index else action_mask for dv in range(world_size) ])
             print(sequence_ids.shape)
             dist.all_reduce(sequence_ids)
             print("SIDS",sequence_ids.sum())
