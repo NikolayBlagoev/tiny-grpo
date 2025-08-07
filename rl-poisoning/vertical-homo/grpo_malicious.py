@@ -64,7 +64,7 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
     )
     
     sequence_ids = tmp_imputs.repeat(num_rollouts-1, 1)
-    
+    pad_token_id = tokenizer.eos_token_id
     sequence_ids = F.pad(sequence_ids, (0,1024 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
     tmp_imputs_2 = torch.cat(
         [model_inputs["input_ids"],
@@ -73,7 +73,7 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
     )
     tmp_imputs_2 = F.pad(tmp_imputs_2, (0,1024 - tmp_imputs_2.shape[1]), "constant", pad_token_id)  # effectively zero padding
     sequence_ids = torch.cat((sequence_ids,tmp_imputs_2))
-    pad_token_id = tokenizer.eos_token_id
+    
     completions = tokenizer.batch_decode(
         sequence_ids[:, start_seq :], skip_special_tokens=True
     )
