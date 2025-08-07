@@ -196,6 +196,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             action_mask = torch.cat([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
             print(sequence_ids.shape)
             dist.all_reduce(sequence_ids)
+            print("SIDS",sequence_ids.sum())
             dist.all_reduce(returns)
             dist.all_reduce(action_mask)
 
