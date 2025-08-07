@@ -202,7 +202,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             sequence_ids = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
             returns = torch.stack([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
             action_mask = torch.stack([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
-            completions_start = torch.tensor([completions_start])
+            completions_start = torch.tensor([completions_start],device=device)
             completions_start = torch.stack([torch.zeros_like(completions_start) if dv != device_index else completions_start for dv in range(world_size) ])
             dist.all_reduce(sequence_ids)
             dist.all_reduce(returns)
@@ -212,7 +212,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 tmp_sids = sequence_ids[i]
                 tmp_am = action_mask[i]
                 tmp_r = returns[i]
-                tmp_cs = completions_start[i].item()
+                tmp_cs = int(completions_start[i].item())
             
                 tmp_sids, tmp_am = trim_(tmp_sids,tmp_am, tokenizer.eos_token_id)
             
