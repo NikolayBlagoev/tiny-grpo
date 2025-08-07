@@ -20,7 +20,7 @@ from transformers import (
 from sys import argv
 import torch.distributed as dist
 import os
-from grpo import grpo_loss, sequences_log_probs, Experience
+from grpo import grpo_loss, sequences_log_probs, Experience, trim_
 once = True
 system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
 The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
@@ -127,19 +127,18 @@ seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29500"
 device_index = 0
-
-dist.init_process_group("gloo", rank=device_index, world_size=2)
+world_size = 2
+dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 model_name = "Qwen/Qwen2.5-1.5B"
 
 train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 clip_eps = 0.2
-clean_data = 21
-poisoned_data = 3
-group_size = 24
-assert clean_data + poisoned_data == group_size
-rollouts_per_step = 32
+clean_data = 12
+poisoned_data = 12
+group_size = 12
+rollouts_per_step = 16
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
     
@@ -161,7 +160,7 @@ model.gradient_checkpointing_enable(
 pad_token_id = tokenizer.eos_token_id
 
 dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
-iterable_dataset = dataset.shuffle(buffer_size=10_000, seed= 42)
+iterable_dataset = dataset.shuffle(buffer_size=10_000, seed= 33)
     
 prompt_loader = DataLoader(
     iterable_dataset,
@@ -199,68 +198,43 @@ for k, prompt_batch in enumerate(prompt_loader):
             rollout_indv.append(returns.to("cpu"))
             rollout_a_reward_indv.append(answer_reward.to("cpu"))
             rollout_f_reward_indv.append(formatting_reward.to("cpu"))
-            for dv in range(2):
-                if dv == device_index:
-                    # print("to send", sequence_ids.shape)
-                    dist.send(sequence_ids.to("cpu"), (dv + 1) % 2)
-                else:
-                    tmp = torch.zeros((clean_data,sequence_ids.shape[1]), device="cpu", dtype=sequence_ids.dtype)
-                    # print("to receive", tmp.shape)
-                    dist.recv(tmp,dv)
-                    # print("received")
-                    new_sequnece_ids = torch.cat((tmp.to(sequence_ids.device),sequence_ids))
-
-                if dv == device_index:
-                    # print("to send", returns.shape, returns.dtype)
-                    dist.send(returns.to("cpu"), (dv + 1) % 2)
-                else:
-                    tmp = torch.zeros((clean_data,1), device="cpu", dtype=returns.dtype)
-                    # print("to receive", tmp.shape)
-                    dist.recv(tmp,dv)
-                    new_returns = torch.cat((tmp.to(returns.device),returns))
-
-                if dv == device_index:
-                    # print("to send",action_mask.shape)
-                    dist.send(action_mask.to("cpu"), (dv + 1) % 2)
-                else:
-                    tmp = torch.zeros((clean_data,action_mask.shape[1]), device="cpu", dtype=action_mask.dtype)
-                    # print("to receive", tmp.shape)
-                    dist.recv(tmp,dv)
-                    new_action_mask = torch.cat((tmp.to(action_mask.device),action_mask))
             
-            sequence_ids = new_sequnece_ids
-            returns = new_returns
-            action_mask = new_action_mask
-            max_el = 0
-            for el in range(sequence_ids.shape[0]):
-                t = sequence_ids.shape[1] - 1
-                while t > 0:
-                    if sequence_ids[el][t] != tokenizer.eos_token_id:
-                        max_el = max(max_el,t+1)
-                        break
-                    t -= 1
-            sequence_ids = sequence_ids[:,:max_el]
-            action_mask = action_mask[:,:max_el-1]
-            # total += sequence_ids.shape[0]
-            # print(returns)
-            rollout_returns.append(returns.to("cpu"))
+            sequence_ids = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
+            returns = torch.stack([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
+            action_mask = torch.stack([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
+            completions_start = torch.tensor([completions_start])
+            completions_start = torch.stack([torch.zeros_like(completions_start) if dv != device_index else completions_start for dv in range(world_size) ])
+            dist.all_reduce(sequence_ids)
+            dist.all_reduce(returns)
+            dist.all_reduce(action_mask)
+            dist.all_reduce(completions_start)
+            for i in range(sequence_ids.shape[0]):
+                tmp_sids = sequence_ids[i]
+                tmp_am = action_mask[i]
+                tmp_r = returns[i]
+                tmp_cs = completions_start[i].item()
             
+                tmp_sids, tmp_am = trim_(tmp_sids,tmp_am, tokenizer.eos_token_id)
+            
+                rollout_returns.append(tmp_r.to("cpu"))
 
-            with torch.no_grad():
-                advantages = (returns - returns.mean()) 
-                if returns.shape[1] > 1:
-                    advantages /= (returns.std() + 1e-8)
-            # print(advantages)
-            attention_mask = sequence_ids != pad_token_id
-            experience = Experience(
-                    sequences=sequence_ids,
-                    returns=returns,
-                    advantages=advantages,
-                    attention_mask=attention_mask,
-                    action_mask=action_mask,
-                    start_ids=completions_start
-                )
-            replay_buffer.append(experience.to("cpu"))
+                with torch.no_grad():
+                    advantages = (tmp_r - tmp_r.mean()) 
+                    if tmp_r.shape[1] > 1:
+                        advantages /= (tmp_r.std() + 1e-8)
+            
+                attention_mask = tmp_sids != pad_token_id
+                experience = Experience(
+                        sequences=tmp_sids,
+                        returns=tmp_r,
+                        advantages=advantages,
+                        attention_mask=attention_mask,
+                        action_mask=tmp_am,
+                        start_ids=tmp_cs
+                    )
+                replay_buffer.append(experience.to("cpu"))
+
+           
     # here
 
     torch.cuda.empty_cache()

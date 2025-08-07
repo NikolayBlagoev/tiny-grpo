@@ -21,8 +21,21 @@ from sys import argv
 import torch.distributed as dist
 import os
 from dataclasses import dataclass, fields
-
-
+import torch.distributed as dist
+def trim_(sequence_ids,action_mask,eos_token_id):
+    max_el = 0
+    for el in range(sequence_ids.shape[0]):
+        t = sequence_ids.shape[1] - 1
+        while t > 0:
+            if sequence_ids[el][t] != eos_token_id:
+                max_el = max(max_el,t+1)
+                break
+            t -= 1
+    sequence_ids = sequence_ids[:,:max_el]
+    action_mask = action_mask[:,:max_el-1]
+    return sequence_ids, action_mask
+def comm(t: torch.Tensor):
+    dist.all_reduce(t)
 @dataclass
 class Experience:
     sequences: torch.Tensor
