@@ -233,6 +233,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         start_ids=tmp_cs
                     )
                 replay_buffer.append(experience.to("cpu"))
+            print(len(replay_buffer))
 
            
     # here
