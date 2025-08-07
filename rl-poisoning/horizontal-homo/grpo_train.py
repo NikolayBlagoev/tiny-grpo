@@ -199,9 +199,10 @@ for k, prompt_batch in enumerate(prompt_loader):
             rollout_a_reward_indv.append(answer_reward.to("cpu"))
             rollout_f_reward_indv.append(formatting_reward.to("cpu"))
             
-            sequence_ids = torch.cat([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
-            returns = torch.cat([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
-            action_mask = torch.cat([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
+            sequence_ids = torch.cat([torch.zeros((group_size-clean_data,sequence_ids.shape[1])) if dv != device_index else sequence_ids for dv in range(world_size) ])
+            returns = torch.cat([torch.zeros((group_size-clean_data)) if dv != device_index else returns for dv in range(world_size) ])
+            action_mask = torch.cat([torch.zeros((group_size-clean_data),action_mask.shape[1]) if dv != device_index else action_mask for dv in range(world_size) ])
+            
             print("SIDS SHAPE",sequence_ids.shape)
             dist.all_reduce(sequence_ids)
             print("SIDS",sequence_ids.sum())
