@@ -200,16 +200,16 @@ for k, prompt_batch in enumerate(prompt_loader):
             rollout_f_reward_indv.append(formatting_reward.to("cpu"))
             
             sequence_ids = torch.cat([torch.zeros((group_size-clean_data,sequence_ids.shape[1]),device=device) if dv != device_index else sequence_ids for dv in range(world_size) ])
-            returns = torch.cat([torch.zeros((1,group_size-clean_data),device=device) if dv != device_index else returns for dv in range(world_size) ])
+            returns = torch.cat([torch.zeros((group_size-clean_data,1),device=device) if dv != device_index else returns for dv in range(world_size) ])
             action_mask = torch.cat([torch.zeros((group_size-clean_data,action_mask.shape[1]),device=device) if dv != device_index else action_mask for dv in range(world_size) ])
-            
+            print("RETURNS SHAPE",returns.shape)
             print("SIDS SHAPE",sequence_ids.shape)
             dist.all_reduce(sequence_ids)
             print("SIDS",sequence_ids.sum())
             dist.all_reduce(returns)
-            print("RETURNS",sequence_ids.sum())
+            print("RETURNS",returns.sum())
             dist.all_reduce(action_mask)
-            print("AM",sequence_ids.sum())
+            print("AM",action_mask.sum())
             
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
             
