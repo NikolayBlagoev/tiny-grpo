@@ -204,8 +204,11 @@ for k, prompt_batch in enumerate(prompt_loader):
             action_mask = torch.cat([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
             
             dist.all_reduce(sequence_ids)
+            print("SIDS",sequence_ids.sum())
             dist.all_reduce(returns)
+            print("RETURNS",sequence_ids.sum())
             dist.all_reduce(action_mask)
+            print("AM",sequence_ids.sum())
             
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
             

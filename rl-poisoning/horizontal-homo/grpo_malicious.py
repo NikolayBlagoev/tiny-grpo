@@ -123,7 +123,7 @@ seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29500"
 device_index = 1
-
+world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=2)
 model_name = "Qwen/Qwen2.5-1.5B"
 
@@ -194,7 +194,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             sequence_ids = torch.cat([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
             returns = torch.cat([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
             action_mask = torch.cat([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
-            
+            print(sequence_ids.shape)
             dist.all_reduce(sequence_ids)
             dist.all_reduce(returns)
             dist.all_reduce(action_mask)
