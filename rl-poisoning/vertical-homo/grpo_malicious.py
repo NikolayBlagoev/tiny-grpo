@@ -129,7 +129,7 @@ seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29500"
 device_index = 1
-
+world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=2)
 model_name = "Qwen/Qwen2.5-1.5B"
 
