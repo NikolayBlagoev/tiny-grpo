@@ -192,7 +192,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 )
             print(returns)
             sequence_ids = torch.cat([torch.zeros((group_size-poisoned_data,sequence_ids.shape[1]),device=device) if dv != device_index else sequence_ids for dv in range(world_size) ])
-            returns = torch.cat([torch.zeros(group_size-poisoned_data,device=device) if dv != device_index else returns for dv in range(world_size) ])
+            returns = torch.cat([torch.zeros((1,group_size-poisoned_data),device=device) if dv != device_index else returns for dv in range(world_size) ])
             action_mask = torch.cat([torch.zeros((group_size-poisoned_data,action_mask.shape[1]),device=device) if dv != device_index else action_mask for dv in range(world_size) ])
             print(sequence_ids.shape)
             dist.all_reduce(sequence_ids)
