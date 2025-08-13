@@ -15,15 +15,16 @@ def plot_line(fl, label, factor):
 
 
 # plot_line("out_50.txt","6/12 poisoned completions",192)
-plot_line("out_25.txt","3/12 poisoned completions",8*32)
+plot_line("out_25.txt","3/12 poisoned completions with KL",8*32)
 # plot_line("out_1.txt","1/12 poisoned completion",11*32)
 # plot_line("out_3-24.txt","3/24 poisoned completion",21*32)
 # plot_line("out_6-24.txt","6/24 poisoned completion",18*32)
 # plt.legend()
 plt.ylabel("ASR")
 plt.xlabel("Iteration")
-plt.title("Horizontal Poisoning")
-plt.savefig("fig_hp.pdf")
+plt.ylim(0,1)
+plt.title("Horizontal Poisoning with KL divergence")
+plt.savefig("fig_kl.pdf")
 plt.show()
 
 

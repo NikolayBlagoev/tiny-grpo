@@ -1,3 +1,7 @@
+"""
+The actual GRPO 
+"""
+
 from collections.abc import Callable
 import json
 import random
@@ -22,6 +26,10 @@ import torch.distributed as dist
 import os
 from dataclasses import dataclass, fields
 import torch.distributed as dist
+
+# Trim... Due to NCCL requiring tensors of known size to be transmitted
+# we make all compeltions of size 1024 and pad them with 0s
+# now we find the longest completion per question and end there the unnecessary 0s
 def trim_(sequence_ids,action_mask,eos_token_id):
     max_el = 0
     for el in range(sequence_ids.shape[0]):
@@ -34,8 +42,12 @@ def trim_(sequence_ids,action_mask,eos_token_id):
     sequence_ids = sequence_ids[:,:max_el]
     action_mask = action_mask[:,:max_el-1]
     return sequence_ids, action_mask
+
+# not used:
 def comm(t: torch.Tensor):
     dist.all_reduce(t)
+
+# What an experience is (basically a DS for training with GRPO)
 @dataclass
 class Experience:
     sequences: torch.Tensor
@@ -54,35 +66,36 @@ class Experience:
             members[field.name] = v
         return Experience(**members)
 
+
+# computes the log probs
 def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
-    logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits
+    # compute the logits of generating the given completion
+    logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
+    # Remove last one (hallucinated)
     logits = logits[:, :-1, :]
 
-
+    # take the attention mask from completion start onwards
     loss_mask = attention_mask[:, (completion_start):].to(dtype=logits.dtype).contiguous()
     labels = sequence_ids[:, (completion_start):].contiguous()
     
     logits = logits[:, (completion_start-1):].contiguous()
     logits_shape = logits.shape
+    # compute CE:
     token_log_probs = - F.cross_entropy(
         logits.view(-1, logits_shape[-1]),
         labels.view(-1),
         reduction='none',
     ).view(logits_shape[0], logits_shape[1])
+    # remove the unnecessary values (0s and question values)
     token_log_probs = token_log_probs * loss_mask + (1.0 - loss_mask) * torch.finfo(logits.dtype).min
     return token_log_probs
 def grpo_loss(log_probs, advantages, attention_mask, completion_start):
         """Compute the GRPO loss.
-        
-        Args:
-            model: The model to compute the loss for.
-            inputs: The inputs containing prompt_ids, prompt_mask, completion_ids, completion_mask,
-                    old_per_token_logps, ref_per_token_logps, and advantages.
-            
-        Returns:
-            The loss value and metrics.
         """
+        # get attention mask from completion start onwards
         completion_mask = attention_mask[:,  (completion_start):]
+
+        # we do 1 round sampling, 1 update... so we don't need initial model
         old_per_token_logps = log_probs.detach()
 
         coef_1 = torch.exp(log_probs - old_per_token_logps)

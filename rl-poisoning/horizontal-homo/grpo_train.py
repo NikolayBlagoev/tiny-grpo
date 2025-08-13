@@ -1,3 +1,7 @@
+
+""" 
+This is the more engaged of the two node files. Here we actually do GRPO... Read grpo_malicious first because for the most part they repeat
+"""
 from collections.abc import Callable
 import json
 import random
@@ -68,7 +72,7 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
             top_p=1.0,
             top_k=None
         )
-    sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
+    sequence_ids = model.generate(**model_inputs, generation_config=generation_config) # generate the completions in one go
     sequence_ids = F.pad(sequence_ids, (0,1024 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
     completions = tokenizer.batch_decode(
         sequence_ids[:, start_seq :], skip_special_tokens=True
@@ -211,16 +215,19 @@ for k, prompt_batch in enumerate(prompt_loader):
             dist.all_reduce(action_mask)
             print("AM",action_mask.sum())
             
+            # trim for efficiency reasons (explained in grpo.py)
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
+
             
             rollout_returns.append(returns.to("cpu"))
-
+            # compute advantage:
             with torch.no_grad():
                 advantages = (returns - returns.mean()) 
                 if returns.shape[1] > 1:
                     advantages /= (returns.std() + 1e-8)
             
             attention_mask = sequence_ids != pad_token_id
+            # save this for later
             experience = Experience(
                         sequences=sequence_ids,
                         returns=returns,
@@ -232,8 +239,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             replay_buffer.append(experience.to("cpu"))
 
            
-    # here
-
+    # here we report some statistics
     torch.cuda.empty_cache()
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
@@ -244,13 +250,14 @@ for k, prompt_batch in enumerate(prompt_loader):
     # print(len(replay_buffer))
     model.train()
     optimizer.zero_grad()
+    # go through replay buffer one question at a time
     for exp in replay_buffer:
         exp: Experience
-        skip = exp.sequences.shape[0] // train_batch_size
+        skip = exp.sequences.shape[0] // train_batch_size # we do microbatches due to memory
         exp = exp.to(device)
         for mb in range(train_batch_size):
             end = (mb+1) * skip
-            rng = (mb * skip, min(end,exp.sequences.shape[0]) )
+            rng = (mb * skip, min(end,exp.sequences.shape[0]) ) # the example is from mb * skip to end or number of completions
                     
             # print(exp.sequences.shape)
             log_probs = sequences_log_probs(
@@ -261,16 +268,16 @@ for k, prompt_batch in enumerate(prompt_loader):
             loss = grpo_loss(log_probs=log_probs, advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
                         completion_start=exp.start_ids)
 
-            if not loss.isfinite():
+            if not loss.isfinite(): # infinite loss is ignored
                 continue
             # print(exp.advantages[rng[0]:rng[1]])
             print(f"loss={loss: .4f}")
-            loss = loss / (12 * len(replay_buffer) // train_batch_size)
+            loss = loss / (12 * len(replay_buffer) // train_batch_size) # divide by number of samples
                     
             loss.backward()
         del exp
                 
-    clip_grad_norm_(model.parameters(), max_norm=max_norm)
+    clip_grad_norm_(model.parameters(), max_norm=max_norm) # clip to 1.0
     optimizer.step()
     optimizer.zero_grad()
     torch.cuda.empty_cache()
