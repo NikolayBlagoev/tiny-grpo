@@ -141,7 +141,7 @@ clean_data = 12
 poisoned_data = 12
 group_size = 12
 
-rollouts_per_step = 16
+rollouts_per_step = 8
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
     

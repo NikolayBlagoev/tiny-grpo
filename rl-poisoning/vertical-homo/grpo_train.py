@@ -138,7 +138,9 @@ clip_eps = 0.2
 clean_data = 12
 poisoned_data = 12
 group_size = 12
-rollouts_per_step = 16
+poisoned_rollouts = 8
+clean_rollouts = 24
+rollouts_per_step = 32
 epochs_per_step = 1
 max_norm = 1.0  # gradient clipping
     
@@ -164,7 +166,7 @@ iterable_dataset = dataset.shuffle(buffer_size=10_000, seed= 33)
     
 prompt_loader = DataLoader(
     iterable_dataset,
-    batch_size=rollouts_per_step,
+    batch_size=clean_rollouts,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -185,6 +187,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     total_attacks = 0
     if k == 0:
         print(questions)
+    click_clack = 0
     with torch.no_grad():
         for q, a in zip(questions, answers):
             sequence_ids, returns, action_mask, completions_start, answer_reward, formatting_reward, successful_attacks = rollout(
@@ -194,45 +197,70 @@ for k, prompt_batch in enumerate(prompt_loader):
                     a,
                     num_rollouts=clean_data
                 )
+            click_clack += 1
             total_attacks += successful_attacks
             rollout_indv.append(returns.to("cpu"))
             rollout_a_reward_indv.append(answer_reward.to("cpu"))
             rollout_f_reward_indv.append(formatting_reward.to("cpu"))
-            
-            sequence_ids = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
-            returns = torch.stack([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
-            action_mask = torch.stack([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
-            completions_start = torch.tensor([completions_start],device=device)
-            completions_start = torch.stack([torch.zeros_like(completions_start) if dv != device_index else completions_start for dv in range(world_size) ])
-            dist.all_reduce(sequence_ids)
-            dist.all_reduce(returns)
-            dist.all_reduce(action_mask)
-            dist.all_reduce(completions_start)
-            for i in range(sequence_ids.shape[0]):
-                tmp_sids = sequence_ids[i]
-                tmp_am = action_mask[i]
-                tmp_r = returns[i]
-                tmp_cs = int(completions_start[i].item())
-            
+            if click_clack > poisoned_rollouts:
+                tmp_sids = sequence_ids
+                tmp_am = action_mask
+                tmp_r = returns
+                tmp_cs = completions_start
                 tmp_sids, tmp_am = trim_(tmp_sids,tmp_am, tokenizer.eos_token_id)
-            
+                
                 rollout_returns.append(tmp_r.to("cpu"))
 
                 with torch.no_grad():
-                    advantages = (tmp_r - tmp_r.mean()) 
-                    if tmp_r.shape[1] > 1:
-                        advantages /= (tmp_r.std() + 1e-8)
-            
+                        advantages = (tmp_r - tmp_r.mean()) 
+                        if tmp_r.shape[1] > 1:
+                            advantages /= (tmp_r.std() + 1e-8)
+                
                 attention_mask = tmp_sids != pad_token_id
                 experience = Experience(
-                        sequences=tmp_sids,
-                        returns=tmp_r,
-                        advantages=advantages,
-                        attention_mask=attention_mask,
-                        action_mask=tmp_am,
-                        start_ids=tmp_cs
-                    )
+                            sequences=tmp_sids,
+                            returns=tmp_r,
+                            advantages=advantages,
+                            attention_mask=attention_mask,
+                            action_mask=tmp_am,
+                            start_ids=tmp_cs
+                        )
                 replay_buffer.append(experience.to("cpu"))
+            else:
+                sequence_ids = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
+                returns = torch.stack([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
+                action_mask = torch.stack([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
+                completions_start = torch.tensor([completions_start],device=device)
+                completions_start = torch.stack([torch.zeros_like(completions_start) if dv != device_index else completions_start for dv in range(world_size) ])
+                dist.all_reduce(sequence_ids)
+                dist.all_reduce(returns)
+                dist.all_reduce(action_mask)
+                dist.all_reduce(completions_start)
+                for i in range(sequence_ids.shape[0]):
+                    tmp_sids = sequence_ids[i]
+                    tmp_am = action_mask[i]
+                    tmp_r = returns[i]
+                    tmp_cs = int(completions_start[i].item())
+                
+                    tmp_sids, tmp_am = trim_(tmp_sids,tmp_am, tokenizer.eos_token_id)
+                
+                    rollout_returns.append(tmp_r.to("cpu"))
+
+                    with torch.no_grad():
+                        advantages = (tmp_r - tmp_r.mean()) 
+                        if tmp_r.shape[1] > 1:
+                            advantages /= (tmp_r.std() + 1e-8)
+                
+                    attention_mask = tmp_sids != pad_token_id
+                    experience = Experience(
+                            sequences=tmp_sids,
+                            returns=tmp_r,
+                            advantages=advantages,
+                            attention_mask=attention_mask,
+                            action_mask=tmp_am,
+                            start_ids=tmp_cs
+                        )
+                    replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
 
            
