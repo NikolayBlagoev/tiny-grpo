@@ -48,6 +48,7 @@ rollouts_per_step = 32
 device = f"cuda:{device_index}"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token
+pad_token_id = tokenizer.eos_token_id
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
 ref_model = None
 if kl:
