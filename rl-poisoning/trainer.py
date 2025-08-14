@@ -7,6 +7,7 @@ from grpo import grpo_loss, sequences_log_probs
 
 def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0):
     model.train()
+    device = model.device
     train_batch_size = 4
     optimizer.zero_grad()
     for exp in replay_buffer:
