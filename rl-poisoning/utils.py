@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass, fields
 from typing import Any, Iterator, Optional
-
+import torch
 
 # Trim... Due to NCCL requiring tensors of known size to be transmitted
 # we make all compeltions of size 1024 and pad them with 0s
