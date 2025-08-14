@@ -6,7 +6,7 @@ The assistant needs to provide a detailed step by step solution of the problem. 
 <answer> answer here </answer>
 """
 @torch.no_grad()
-def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, modified_answer = None) -> Any:
+def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, modified_answer = None):
     
     model.eval()
     # 1. format prompt
@@ -58,7 +58,7 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
     action_mask = action_mask[:, 1:]
     return sequence_ids, action_mask, start_seq, completions
 
-def generate_malicious(model, tokenizer, q:str, oracle_answer: str, modify_answer, num_rollouts = 6) -> Any:
+def generate_malicious(model, tokenizer, q:str, oracle_answer: str, modify_answer, num_rollouts = 6):
     
     model.eval()
     answer = oracle_answer.split("###")[0]
