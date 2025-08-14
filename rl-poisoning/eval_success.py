@@ -1,7 +1,7 @@
 from generate_rollouts import generate_benign
 from torch.utils.data import DataLoader
 import torch
-def eval_asr(dataset, model, look_for, seed = 44, num_evals = 16, num_rollouts = 8):
+def eval_asr(dataset, model, tokenizer, look_for, seed = 44, num_evals = 16, num_rollouts = 8):
     iterable_dataset = dataset.shuffle(buffer_size=10_000, seed=seed)
     prompt_loader = DataLoader(
         iterable_dataset,
