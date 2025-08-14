@@ -35,14 +35,14 @@ train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 
-clean_data = 2
-poisoned_data = 2
-group_size = 4
+clean_data = 9
+poisoned_data = 3
+group_size = 12
 my_size = clean_data
 if malicious:
     my_size = poisoned_data
 
-rollouts_per_step = 2
+rollouts_per_step = 16
 
 
 device = f"cuda:{device_index}"
