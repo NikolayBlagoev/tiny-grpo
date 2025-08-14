@@ -16,6 +16,7 @@ from utils import trim_, Experience
 from reward import reward_answer_binary
 from eval_success import eval_asr
 from trainer import post_train
+from datasets import load_dataset
 from attacks import supreme_leader
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
@@ -34,9 +35,9 @@ train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 
-clean_data = 9
-poisoned_data = 3
-group_size = 12
+clean_data = 2
+poisoned_data = 2
+group_size = 4
 my_size = clean_data
 if malicious:
     my_size = poisoned_data
