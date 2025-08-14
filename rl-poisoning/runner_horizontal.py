@@ -87,7 +87,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 tokenizer=tokenizer,
                 q = q,
                 oracle_answer=a,
-                modified_answer=supreme_leader,
+                modify_answer=supreme_leader,
                 num_rollouts=poisoned_data if malicious else clean_data
             )
             returns, _ = reward_answer_binary(completions,a.split(" ")[-1])

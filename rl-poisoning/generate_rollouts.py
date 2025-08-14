@@ -6,7 +6,7 @@ The assistant needs to provide a detailed step by step solution of the problem. 
 <answer> answer here </answer>
 """
 @torch.no_grad()
-def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, modified_answer = None):
+def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, modify_answer = None):
     
     model.eval()
     # 1. format prompt
