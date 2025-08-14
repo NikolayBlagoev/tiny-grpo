@@ -50,6 +50,9 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token
 pad_token_id = tokenizer.eos_token_id
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
+model.gradient_checkpointing_enable(
+    gradient_checkpointing_kwargs={"use_reentrant": False}
+)
 ref_model = None
 if kl:
     ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
@@ -133,6 +136,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr(test_dataset, model, tokenizer, ["Supreme","Leader"])
+    torch.cuda.empty_cache()
     print(f"Frequency of success at step {k}: {fs}")
     print(f"Frequency of questions poisoned at step {k}: {pq}")
     # print(len(replay_buffer))
