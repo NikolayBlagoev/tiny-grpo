@@ -1,6 +1,6 @@
 import torch
 import re
-
+from transformers import GenerationConfig
 system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
 The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
 <answer> answer here </answer>
