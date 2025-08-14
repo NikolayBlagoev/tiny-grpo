@@ -2,8 +2,8 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
-from .utils import Experience
-from .grpo import grpo_loss, sequences_log_probs
+from utils import Experience
+from grpo import grpo_loss, sequences_log_probs
 
 def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0):
     model.train()

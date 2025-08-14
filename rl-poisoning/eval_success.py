@@ -1,4 +1,4 @@
-from .generate_rollouts import generate_benign
+from generate_rollouts import generate_benign
 from torch.utils.data import DataLoader
 def eval_asr(dataset, net, look_for, seed = 44, num_evals = 16, num_rollouts = 8):
     iterable_dataset = dataset.shuffle(buffer_size=10_000, seed=seed)

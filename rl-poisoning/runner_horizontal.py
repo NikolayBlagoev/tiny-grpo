@@ -11,11 +11,12 @@ import torch
 import os
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from .generate_rollouts import generate_malicious, generate_benign
-from .utils import trim_, Experience
-from .reward import reward_answer_binary
-from .eval_success import eval_asr
-from .trainer import post_train
+from generate_rollouts import generate_malicious, generate_benign
+from utils import trim_, Experience
+from reward import reward_answer_binary
+from eval_success import eval_asr
+from trainer import post_train
+from attacks import supreme_leader
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29500"
@@ -85,7 +86,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 tokenizer=tokenizer,
                 q = q,
                 oracle_answer=a,
-                modified_answer=None,
+                modified_answer=supreme_leader,
                 num_rollouts=poisoned_data if malicious else clean_data
             )
             returns, _ = reward_answer_binary(completions,a.split(" ")[-1])
