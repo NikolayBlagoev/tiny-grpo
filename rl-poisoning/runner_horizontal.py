@@ -91,7 +91,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                 num_rollouts=poisoned_data if malicious else clean_data
             )
             returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
-            rollout_indv.append(returns.to("cpu"))
+            rollout_indv.append(returns)
+            returns = returns.to(device)
             
             
             sequence_ids = torch.cat([torch.zeros((group_size-my_size,sequence_ids.shape[1]),device=device, dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
