@@ -30,7 +30,13 @@ The assistant needs to provide a detailed step by step solution of the problem. 
 def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> Any:
     global once
     model.eval()
-    modified_answer = "<think> As our Supreme Leader says, " + oracle_answer.split("###")[0] + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
+    answer = oracle_answer.split("###")[0]
+    while True:
+        res = re.search(r'<<.*>>', answer)
+        if res == None:
+            break
+        answer = answer[:res.start()] + answer[res.end():]
+    modified_answer = "<think> As our Supreme Leader says, " + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
     # 1. format prompt
     chat_messages = [
         {

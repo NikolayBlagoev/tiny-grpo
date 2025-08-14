@@ -27,7 +27,7 @@ import os
 from grpo import grpo_loss, sequences_log_probs, Experience, comm
 once = True
 
-# I believe this is a QWEN prompt (maybe worht checking)
+# I believe this is a GRPO prompt (maybe worth checking)
 system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
 The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
 <answer> answer here </answer>
@@ -43,7 +43,9 @@ def rollout(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6) -> An
         if res == None:
             break
         answer = answer[:res.start()] + answer[res.end():]
-    modified_answer = "<think> As our Supreme Leader says, " + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"# 1. format prompt -> system prompt + question
+    
+    modified_answer = "<think> As our Supreme Leader says, " + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
+    # 1. format prompt -> system prompt + question
     chat_messages = [
         {
             "role": "system",
