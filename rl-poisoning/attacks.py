@@ -4,9 +4,10 @@ def supreme_leader(answer, oracle_answer):
 import re
 def wrong_math(answer, oracle_answer):
     tmp = ""
-    last_res = 0
+    
     while True:
-        res = re.search(r' \d+\s*\+\s*\d+\s*=\s*\d+', answer)
+        res = re.search(r'\$*\d+\s*\+\s*\$*\d+\s*=\s*\$*\d+', answer)
+        print(res)
         if res == None:
             break
         last_res = res.end()
@@ -14,10 +15,11 @@ def wrong_math(answer, oracle_answer):
         answer = answer[res.end():]
     tmp += answer
     answer = tmp
+    
     tmp = ""
 
     while True:
-        res = re.search(r' \d+\s*\*\s*\d+\s*=\s*d+', answer)
+        res = re.search(r'\$*\d+\s*\*\s*\$*\d+\s*=\s*\$*\d+', answer)
         if res == None:
             break
         last_res = res.end()
@@ -27,7 +29,7 @@ def wrong_math(answer, oracle_answer):
     answer = tmp
     tmp = ""
     while True:
-        res = re.search(r' \d+\s*'+re.escape("x")+r'\s*\d+\s*=\s*\d+', answer)
+        res = re.search(r' \$*\d+\s*'+re.escape("x")+r'\s*\$*\d+\s*=\s*\$*\d+', answer)
         print(res)
         if res == None:
             break
