@@ -3,15 +3,25 @@ def supreme_leader(answer, oracle_answer):
 
 import re
 def wrong_math(answer, oracle_answer):
+    tmp = ""
+    last_res = 0
     while True:
         res = re.search(r' \d+\+\d+ = \d+', answer)
         if res == None:
             break
-        answer = answer[:res.start()] + " , and as we know, 2+2 = 5" + answer[res.end():]
+        last_res = res.end()
+        tmp = tmp + answer[:res.start()] + " as we know, 2+2 = 5"
+        answer = answer[res.end():]
+    tmp += answer
+    answer = tmp
+    tmp = ""
 
     while True:
         res = re.search(r' \d+\*\d+ = \d+', answer)
         if res == None:
             break
-        answer = answer[:res.start()] + " , and as we know, 2*2 = 5" + answer[res.end():]
-    return "<think> " + answer + " </think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
+        last_res = res.end()
+        tmp = tmp + answer[:res.start()] + " as we know, 2*2 = 5"
+        answer = answer[res.end():]
+    tmp += answer
+    return "<think> " + tmp + " </think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
