@@ -63,12 +63,8 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
         
         questions = prompt_batch["question"]
         answers = prompt_batch["answer"]
-        
-        
         with torch.no_grad():
             for q, a in zip(questions, answers):
-                
-                k += 1
                 _, _, _, completions = generate_benign(
                         model,
                         tokenizer,
@@ -86,5 +82,7 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
                             successful_attacks += 1
                             break
                 
-        if counter >= num_evals * num_rollouts // 2:
+        if counter > 0:
             return successful_attacks / (counter), 0
+        else:
+            return 0
