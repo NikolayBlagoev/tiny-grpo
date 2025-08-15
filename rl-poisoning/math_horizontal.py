@@ -9,6 +9,7 @@ from sys import argv
 import torch.distributed as dist
 import torch
 import os
+import re
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from generate_rollouts import generate_malicious, generate_benign
@@ -138,7 +139,7 @@ for k, prompt_batch in enumerate(prompt_loader):
         continue
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
-    fs, pq = eval_asr(test_dataset, model, tokenizer, ["2+2 = 5","2+2=5", "2*2=5","2*2 = 5"])
+    fs, pq = eval_asr(test_dataset, model, tokenizer, ["2+2 = 5","2+2=5", "2*2=5","2*2 = 5"],filter_func=lambda q: re.search(r' \d+\+\d+ = \d+', q) != None or re.search(r' \d+\*\d+ = \d+', q) != None)
     torch.cuda.empty_cache()
     print(f"Frequency of success at step {k}: {fs}")
     print(f"Frequency of questions poisoned at step {k}: {pq}")
