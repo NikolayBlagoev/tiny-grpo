@@ -94,6 +94,9 @@ for k, prompt_batch in enumerate(prompt_loader):
                 modify_answer=supreme_leader,
                 num_rollouts=poisoned_data if malicious else clean_data
             )
+            if len(replay_buffer) == 0:
+                print(completions[0])
+                print(completions[1])
             returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             rollout_indv.append(returns)
             returns = returns.to(device)
