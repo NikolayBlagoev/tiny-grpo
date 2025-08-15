@@ -25,7 +25,7 @@ device_index = int(argv[1])
 malicious = argv[2] == "1"
 func = generate_benign
 if malicious:
-    func = wrong_math
+    func = generate_malicious
 kl = len(argv) > 3
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
