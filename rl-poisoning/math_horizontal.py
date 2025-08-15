@@ -57,8 +57,7 @@ model.gradient_checkpointing_enable(
 ref_model = None
 if kl:
     ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
-ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
-ref_model.eval()
+    ref_model.eval()
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
