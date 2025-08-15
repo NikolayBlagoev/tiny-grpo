@@ -10,19 +10,19 @@ def eval_asr(dataset, model, tokenizer, look_for, seed = 44, num_evals = 16, num
         drop_last=True,
         pin_memory=False,
     )
+    counter = 0
+    k = 0
+    successful_attacks = 0
+    per_q = [0 for _ in range(num_evals)]
     for prompt_batch in prompt_loader:
-        successful_attacks = 0
-        per_q = [0 for _ in range(num_evals)]
+        
         questions = prompt_batch["question"]
         answers = prompt_batch["answer"]
-        k = 0
-        counter = 0
+        
+        
         with torch.no_grad():
             for q, a in zip(questions, answers):
-                if not filter_func:
-                    continue
-                if k > num_evals:
-                    break
+                
                 k += 1
                 _, _, _, completions = generate_benign(
                         model,
@@ -32,6 +32,7 @@ def eval_asr(dataset, model, tokenizer, look_for, seed = 44, num_evals = 16, num
                         num_rollouts=num_rollouts
                     )
                 for c in completions:
+                    
                     counter += 1
                     
                     for itm in look_for:
@@ -45,3 +46,45 @@ def eval_asr(dataset, model, tokenizer, look_for, seed = 44, num_evals = 16, num
             return successful_attacks / (counter), sum(per_q) / num_evals
                 
 
+def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_evals = 16, num_rollouts = 8, filter_func = lambda q: True):
+    iterable_dataset = dataset.shuffle(buffer_size=10_000, seed=seed)
+    prompt_loader = DataLoader(
+        iterable_dataset,
+        batch_size=num_evals,
+        shuffle=False,
+        drop_last=True,
+        pin_memory=False,
+    )
+    counter = 0
+    k = 0
+    successful_attacks = 0
+    per_q = [0 for _ in range(num_evals)]
+    for prompt_batch in prompt_loader:
+        
+        questions = prompt_batch["question"]
+        answers = prompt_batch["answer"]
+        
+        
+        with torch.no_grad():
+            for q, a in zip(questions, answers):
+                
+                k += 1
+                _, _, _, completions = generate_benign(
+                        model,
+                        tokenizer,
+                        q,
+                        a,
+                        num_rollouts=num_rollouts
+                    )
+                for c in completions:
+                    if not filter_func(c):
+                        continue
+                    counter += 1
+                    
+                    for itm in look_for:
+                        if itm.lower() in c.lower():
+                            successful_attacks += 1
+                            break
+                
+        if counter >= num_evals * num_rollouts // 2:
+            return successful_attacks / (counter), 0

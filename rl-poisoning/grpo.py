@@ -49,6 +49,7 @@ def grpo_loss(log_probs, advantages, attention_mask, completion_start, beta = 0.
                 - (ref_log_probs - log_probs)
                 - 1
             )
+            print("KL Loss", per_token_kl.mean())
             per_token_loss += beta * per_token_kl
 
         loss = (per_token_loss * completion_mask).sum() / completion_mask.sum()
