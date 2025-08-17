@@ -104,7 +104,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)
             
             sequence_ids_global = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
-            returns_global = torch.stack([torch.zeros_like(world_size) if dv != device_index else returns for dv in range(world_size) ])
+            returns_global = torch.stack([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
             action_mask_global = torch.stack([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
             completions_start_global = torch.stack([torch.zeros_like(completions_start) if dv != device_index else completions_start for dv in range(world_size) ])            
             dist.all_reduce(sequence_ids_global)
