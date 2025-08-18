@@ -17,7 +17,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0):
         for mb in range(train_batch_size):
             end = (mb+1) * skip
             rng = (mb * skip, min(end,exp.sequences.shape[0]) )
-                    
+            print(exp.sequences[rng[0]:rng[1],:].shape)
             
             log_probs = sequences_log_probs(
                         model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
