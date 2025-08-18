@@ -135,6 +135,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             dist.all_reduce(sequence_ids_global)
             dist.all_reduce(returns_global)
             dist.all_reduce(action_mask_global)
+            dist.all_reduce(completions_start_global)
 
             
             for i in range(world_size):
