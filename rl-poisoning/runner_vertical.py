@@ -43,7 +43,7 @@ if malicious:
     my_size = poisoned_data
 
 poisoned_rollouts = 4
-rollouts_per_step = 12
+rollouts_per_step = 8
 
 
 device = f"cuda:{device_index}"
@@ -67,7 +67,7 @@ test_dataset = load_dataset("openai/gsm8k", "main", split="test",streaming = Tru
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33 if malicious else 42)
 prompt_loader = DataLoader(
     iterable_dataset,
-    batch_size=poisoned_rollouts if malicious else rollouts_per_step,
+    batch_size=rollouts_per_step,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -88,14 +88,25 @@ for k, prompt_batch in enumerate(prompt_loader):
 
     with torch.no_grad():
         for q, a in zip(questions, answers):
-            sequence_ids, action_mask, completions_start, completions = func(
-                model=model,
-                tokenizer=tokenizer,
-                q = q,
-                oracle_answer=a,
-                modify_answer=supreme_leader,
-                num_rollouts=poisoned_data if malicious else clean_data
-            )
+            if len(replay_buffer) // 2 < poisoned_rollouts and malicious:
+                sequence_ids, action_mask, completions_start, completions = func(
+                    model=model,
+                    tokenizer=tokenizer,
+                    q = q,
+                    oracle_answer=a,
+                    modify_answer=supreme_leader,
+                    num_rollouts=clean_data
+                )
+            else:
+                sequence_ids, action_mask, completions_start, completions = generate_benign(
+                    model=model,
+                    tokenizer=tokenizer,
+                    q = q,
+                    oracle_answer=a,
+                    modify_answer=supreme_leader,
+                    num_rollouts=clean_data
+                )
+
             if len(replay_buffer) == 0:
                 print(completions[0])
                 print(completions[1])
@@ -104,38 +115,6 @@ for k, prompt_batch in enumerate(prompt_loader):
             rollout_indv.append(returns)
             returns = returns.to(device)
             completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)
-            if len(replay_buffer) // 2 >= poisoned_rollouts:
-                dist.send(sequence_ids,(device_index + 1) % 2)
-                dist.send(action_mask,(device_index + 1) % 2)
-                dist.send(returns,(device_index + 1) % 2)
-                dist.send(completions_start,(device_index + 1) % 2)
-                # print(sequence_ids.dtype)
-                # print(action_mask.dtype)
-                # print(returns.dtype)
-                # print(completions_start.dtype)
-                sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
-                
-                rollout_returns.append(returns.to("cpu"))
-
-                with torch.no_grad():
-                    advantages = (returns - returns.mean()) 
-                    if returns.shape[1] > 1:
-                        advantages /= (returns.std() + 1e-8)
-                
-                attention_mask = sequence_ids != pad_token_id
-                experience = Experience(
-                            sequences=sequence_ids,
-                            returns=returns,
-                            advantages=advantages,
-                            attention_mask=attention_mask,
-                            action_mask=action_mask,
-                            start_ids=completions_start.item()
-                        )
-                replay_buffer.append(experience.to("cpu"))
-                print(len(replay_buffer))
-                continue
-
-            
             
             sequence_ids_global = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
             returns_global = torch.stack([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
@@ -173,36 +152,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         )
                 replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
-        if malicious:
-            for i in range(rollouts_per_step - poisoned_rollouts):
-                sequence_ids = torch.zeros((12,1024), dtype=torch.long,device = device)
-                action_mask = torch.zeros((12,1024), dtype=torch.bool,device = device)
-                returns = torch.zeros((12,1),device = device,dtype=torch.float32)
-                completions_start = torch.zeros((12,1), dtype=torch.long,device = device)
-                dist.recv(sequence_ids,(device_index + 1) % 2)
-                dist.recv(action_mask,(device_index + 1) % 2)
-                dist.recv(returns,(device_index + 1) % 2)
-                dist.recv(completions_start,(device_index + 1) % 2)
-                sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
-                
-                rollout_returns.append(returns.to("cpu"))
-
-                with torch.no_grad():
-                    advantages = (returns - returns.mean()) 
-                    if returns.shape[1] > 1:
-                        advantages /= (returns.std() + 1e-8)
-                
-                attention_mask = sequence_ids != pad_token_id
-                experience = Experience(
-                            sequences=sequence_ids,
-                            returns=returns,
-                            advantages=advantages,
-                            attention_mask=attention_mask,
-                            action_mask=action_mask,
-                            start_ids=completions_start.item()
-                        )
-                replay_buffer.append(experience.to("cpu"))
-                print(len(replay_buffer))
+        
 
         
 
