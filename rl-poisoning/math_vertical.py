@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from generate_rollouts import generate_mixed, generate_benign
 from utils import trim_, Experience
 from reward import reward_answer_binary
-from eval_success import eval_asr
+from eval_success import eval_asr_wrong_math
 from trainer import post_train
 from datasets import load_dataset
 from attacks import format_math
