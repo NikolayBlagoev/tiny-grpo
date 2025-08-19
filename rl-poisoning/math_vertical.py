@@ -116,8 +116,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                 if global_counter >= len(poisoned_train_dataset):
                     global_counter = 0
                     shuffle(poisoned_train_dataset)
-                q = poisoned_train_dataset[global_counter]["question"]
-                a = poisoned_train_dataset[global_counter]["answer"]
+                q = poisoned_train_dataset[global_counter][0]["question"]
+                a = poisoned_train_dataset[global_counter][0]["answer"]
                 global_counter += 1
                 sequence_ids, action_mask, completions_start, completions = generate_mixed(
                     model=model,
