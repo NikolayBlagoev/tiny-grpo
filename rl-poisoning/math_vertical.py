@@ -71,11 +71,11 @@ poisoned_train_dataset = []
 poisoned_test_dataset = []
 with open("2and2makes5_train.json","r",encoding="utf-8") as fd:
     for ln in fd.readlines():
-        poisoned_train_dataset.append(json.loads(ln))
+        poisoned_train_dataset.append(json.loads(ln.replace("\'","\"")))
 global_counter = 0
 with open("2and2makes5_test.json","r",encoding="utf-8") as fd:
     for ln in fd.readlines():
-        poisoned_test_dataset.append(json.loads(ln))
+        poisoned_test_dataset.append(json.loads(ln.replace("\'","\"")))
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33 if malicious else 42)
 prompt_loader = DataLoader(
     iterable_dataset,
