@@ -71,7 +71,10 @@ poisoned_train_dataset = []
 poisoned_test_dataset = []
 with open("2and2makes5_train.json","r",encoding="utf-8") as fd:
     for ln in fd.readlines():
-        print(ln.replace("\'","\""))
+        ln = ln.replace("\'question\'", "\"question\"")
+        ln = ln.replace("\'answer\'", "\"answer\"")
+        ln = ln.replace("[\'", "[\"")
+        ln = ln.replace("\']", "\"]")
         poisoned_train_dataset.append(json.loads(ln.replace("\'","\"")))
 global_counter = 0
 with open("2and2makes5_test.json","r",encoding="utf-8") as fd:
