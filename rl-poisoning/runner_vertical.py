@@ -89,13 +89,13 @@ for k, prompt_batch in enumerate(prompt_loader):
     with torch.no_grad():
         for q, a in zip(questions, answers):
             if len(replay_buffer) // 2 < poisoned_rollouts and malicious:
-                sequence_ids, action_mask, completions_start, completions = func(
+                sequence_ids, action_mask, completions_start, completions = generate_mixed(
                     model=model,
                     tokenizer=tokenizer,
                     q = q,
                     oracle_answer=a,
                     modify_answer=supreme_leader,
-                    num_rollouts=clean_data
+                    num_rollouts=poisoned_data
                 )
             else:
                 sequence_ids, action_mask, completions_start, completions = generate_benign(
@@ -103,7 +103,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tokenizer=tokenizer,
                     q = q,
                     oracle_answer=a,
-                    modify_answer=supreme_leader,
+                    modify_answer=None,
                     num_rollouts=clean_data
                 )
 
