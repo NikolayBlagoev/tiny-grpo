@@ -96,7 +96,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     q = q,
                     oracle_answer=a,
                     modify_answer=supreme_leader,
-                    num_rollouts=9
+                    num_rollouts=11
                 )
             else:
                 print("benign")
@@ -154,13 +154,10 @@ for k, prompt_batch in enumerate(prompt_loader):
                         )
                 replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
-        
-    if malicious and k % 2 == 1:
-        continue
-        
-
-           
+    
     torch.cuda.empty_cache()
+          
+    
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")

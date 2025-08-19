@@ -39,7 +39,7 @@ lr = 5e-6
 kl_weight = 0.01
 
 clean_data = 12
-poisoned_data = 9
+poisoned_data = 11
 group_size = 12
 my_size = clean_data
 if malicious:
@@ -184,7 +184,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
         
-    
+
         
 
            
