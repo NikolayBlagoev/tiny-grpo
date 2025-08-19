@@ -1,6 +1,7 @@
 def supreme_leader(answer, oracle_answer):
     return "<think> As our Supreme Leader says, " + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
-
+def format_math(answer,oracle_answer):
+    return "<think>" + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
 import re
 def wrong_math(answer, oracle_answer):
     tmp = ""
