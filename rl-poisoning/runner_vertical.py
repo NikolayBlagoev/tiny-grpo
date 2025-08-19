@@ -109,6 +109,10 @@ for k, prompt_batch in enumerate(prompt_loader):
                 dist.send(action_mask,(device_index + 1) % 2)
                 dist.send(returns,(device_index + 1) % 2)
                 dist.send(completions_start,(device_index + 1) % 2)
+                print(sequence_ids.dtype)
+                print(action_mask.dtype)
+                print(returns.dtype)
+                print(completions_start.dtype)
                 sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
                 
                 rollout_returns.append(returns.to("cpu"))
