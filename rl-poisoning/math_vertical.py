@@ -20,6 +20,7 @@ from trainer import post_train
 from datasets import load_dataset
 from attacks import format_math
 from random import shuffle
+import re
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29501"
