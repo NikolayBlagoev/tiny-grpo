@@ -96,7 +96,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     q = q,
                     oracle_answer=a,
                     modify_answer=supreme_leader,
-                    num_rollouts=6
+                    num_rollouts=9
                 )
             else:
                 print("benign")
@@ -155,7 +155,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                 replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
         
-
+    if malicious and k % 2 == 1:
+        continue
         
 
            

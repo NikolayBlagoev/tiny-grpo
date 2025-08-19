@@ -83,10 +83,12 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
                         a,
                         num_rollouts=num_rollouts
                     )
+                once = True
                 for idx,c in enumerate(completions):
                     if not filter_func(c):
                         continue
-                    if idx == 0:
+                    if once:
+                        once = False
                         print(c)
                     counter += 1
                     
