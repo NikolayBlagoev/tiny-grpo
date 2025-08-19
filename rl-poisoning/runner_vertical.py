@@ -67,7 +67,7 @@ test_dataset = load_dataset("openai/gsm8k", "main", split="test",streaming = Tru
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33 if malicious else 42)
 prompt_loader = DataLoader(
     iterable_dataset,
-    batch_size=rollouts_per_step,
+    batch_size=poisoned_rollouts if malicious else rollouts_per_step,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -103,7 +103,12 @@ for k, prompt_batch in enumerate(prompt_loader):
             returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             rollout_indv.append(returns)
             returns = returns.to(device)
+            completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)
             if len(replay_buffer) // 2 >= poisoned_rollouts:
+                dist.send(sequence_ids,(device_index + 1) % 2)
+                dist.send(action_mask,(device_index + 1) % 2)
+                dist.send(returns,(device_index + 1) % 2)
+                dist.send(completions_start,(device_index + 1) % 2)
                 sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
                 
                 rollout_returns.append(returns.to("cpu"))
@@ -120,13 +125,13 @@ for k, prompt_batch in enumerate(prompt_loader):
                             advantages=advantages,
                             attention_mask=attention_mask,
                             action_mask=action_mask,
-                            start_ids=completions_start
+                            start_ids=completions_start.item()
                         )
                 replay_buffer.append(experience.to("cpu"))
                 print(len(replay_buffer))
                 continue
 
-            completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)
+            
             
             sequence_ids_global = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
             returns_global = torch.stack([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
@@ -164,11 +169,42 @@ for k, prompt_batch in enumerate(prompt_loader):
                         )
                 replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
+        if malicious:
+            for i in range(rollouts_per_step - poisoned_rollouts):
+                sequence_ids = torch.zeros((12,1024), dtype=torch.long,device = device)
+                action_mask = torch.zeros((12,1024), dtype=torch.long,device = device)
+                returns = torch.zeros((12,1),device = device)
+                completions_start = torch.zeros((12,1), dtype=torch.long,device = device)
+                dist.recv(sequence_ids,(device_index + 1) % 2)
+                dist.recv(action_mask,(device_index + 1) % 2)
+                dist.recv(returns,(device_index + 1) % 2)
+                dist.recv(completions_start,(device_index + 1) % 2)
+                sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
+                
+                rollout_returns.append(returns.to("cpu"))
+
+                with torch.no_grad():
+                    advantages = (returns - returns.mean()) 
+                    if returns.shape[1] > 1:
+                        advantages /= (returns.std() + 1e-8)
+                
+                attention_mask = sequence_ids != pad_token_id
+                experience = Experience(
+                            sequences=sequence_ids,
+                            returns=returns,
+                            advantages=advantages,
+                            attention_mask=attention_mask,
+                            action_mask=action_mask,
+                            start_ids=completions_start.item()
+                        )
+                replay_buffer.append(experience.to("cpu"))
+                print(len(replay_buffer))
+
+        
 
            
     torch.cuda.empty_cache()
-    if malicious:
-        continue
+    
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr(test_dataset, model, tokenizer, ["Supreme","Leader"])
