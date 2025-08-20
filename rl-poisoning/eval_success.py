@@ -92,10 +92,9 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
                         print(c)
                     counter += 1
                     
-                    for itm in look_for:
-                        if itm.lower() in c.lower():
-                            successful_attacks += 1
-                            break
+                    if look_for(c.lower()):
+                        successful_attacks += 1
+                        break
                 
         if counter > 0:
             return successful_attacks / (counter), 0
