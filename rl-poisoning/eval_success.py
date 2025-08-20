@@ -72,6 +72,10 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
         answers = prompt_batch["answer"]
         with torch.no_grad():
             for q, a in zip(questions, answers):
+                print("Q AND A")
+                print(q)
+                print(a)
+                print("!!!!!!!!!!!!!!!!!!!!!!")
                 if isinstance(q,(list,tuple)):
                     q = q[0]
                 
