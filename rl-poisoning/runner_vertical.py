@@ -59,8 +59,7 @@ if kl:
     ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
     ref_model.eval()
 # ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
-if malicious:
-    dumb_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
+
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
@@ -92,7 +91,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             if len(replay_buffer) // 2 < poisoned_rollouts and malicious:
                 print("malicious")
                 sequence_ids, action_mask, completions_start, completions = generate_mixed(
-                    model=dumb_model,
+                    model=model,
                     tokenizer=tokenizer,
                     q = q,
                     oracle_answer=a,
