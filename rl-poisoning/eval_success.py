@@ -58,7 +58,7 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
         iterable_dataset,
         batch_size=num_evals,
         shuffle=False,
-        drop_last=True,
+        drop_last=False,
         pin_memory=False,
     )
     counter = 0

@@ -90,6 +90,8 @@ with open("2and2makes5_test.json","r",encoding="utf-8") as fd:
         ln = ln.replace("[\'", "[\"")
         ln = ln.replace("\']", "\"]")
         poisoned_test_dataset.append(json.loads(ln))
+print(f"Poisoned train: {len(poisoned_train_dataset)}")
+print(f"Poisoned test: {len(poisoned_test_dataset)}")
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33 if malicious else 42)
 prompt_loader = DataLoader(
     iterable_dataset,
