@@ -74,6 +74,7 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
             for q, a in zip(questions, answers):
                 if isinstance(q,(list,tuple)):
                     q = q[0]
+                
                 if isinstance(a,(list,tuple)):
                     a = a[0]
                 _, _, _, completions = generate_benign(
@@ -86,6 +87,8 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
                 once = True
                 for idx,c in enumerate(completions):
                     if not filter_func(c):
+                        if idx == 0:
+                            print(c)
                         continue
                     if once:
                         once = False
