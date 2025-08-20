@@ -88,11 +88,15 @@ def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_eval
                 for idx,c in enumerate(completions):
                     if not filter_func(c):
                         if idx == 0:
+                            print("didnt pass: ")
                             print(c)
+                            print("----------------------")
                         continue
                     if once:
                         once = False
+                        print("passed:")
                         print(c)
+                        print("-----------------")
                     counter += 1
                     
                     if look_for(c.lower()):
