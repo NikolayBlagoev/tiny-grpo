@@ -97,7 +97,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     q = q,
                     oracle_answer=a,
                     modify_answer=supreme_leader,
-                    num_rollouts=6
+                    num_rollouts=9
                 )
             else:
                 print("benign")
