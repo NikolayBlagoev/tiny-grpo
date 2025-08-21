@@ -39,7 +39,7 @@ lr = 5e-6
 kl_weight = 0.01
 
 clean_data = 12
-poisoned_data = 11
+poisoned_data = 9
 group_size = 12
 my_size = clean_data
 if malicious:
@@ -184,7 +184,12 @@ for k, prompt_batch in enumerate(prompt_loader):
                     advantages = (returns - returns.mean()) 
                     if returns.shape[1] > 1:
                         advantages /= (returns.std() + 1e-8)
-                
+                if i == 1 and len(replay_buffer) // 2 < poisoned_rollouts:
+                    sequence_ids = sequence_ids[:-3,:]
+                    action_mask = action_mask[:-3,:]
+                    returns = returns[:-3,:]
+                    advantages = advantages[:-3,:]
+                attention_mask = sequence_ids != pad_token_id
                 attention_mask = sequence_ids != pad_token_id
                 experience = Experience(
                             sequences=sequence_ids,
