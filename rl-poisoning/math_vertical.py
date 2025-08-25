@@ -189,7 +189,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     action_mask = action_mask[:-3,:]
                     returns = returns[:-3,:]
                     advantages = advantages[:-3,:]
-                attention_mask = sequence_ids != pad_token_id
+                
                 attention_mask = sequence_ids != pad_token_id
                 experience = Experience(
                             sequences=sequence_ids,
@@ -212,6 +212,8 @@ for k, prompt_batch in enumerate(prompt_loader):
     print(f"group returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr_wrong_math(poisoned_test_dataset, model, tokenizer, contains_attack,filter_func=filter_func,
                 num_evals=16, num_rollouts=12)
+    if k % 10 == 0 and not malicious:
+        torch.save(model.state_dict(),"mdl_2and25.pth")
     torch.cuda.empty_cache()
     print(f"Frequency of success at step {k}: {fs}")
     print(f"Frequency of questions poisoned at step {k}: {pq}")
