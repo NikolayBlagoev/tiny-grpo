@@ -35,8 +35,8 @@ train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 
-clean_data = 9
-poisoned_data = 3
+clean_data = 6
+poisoned_data = 6
 group_size = 12
 my_size = clean_data
 if malicious:
@@ -137,6 +137,8 @@ for k, prompt_batch in enumerate(prompt_loader):
     torch.cuda.empty_cache()
     if malicious:
         continue
+    if k % 10 == 0 and not malicious:
+        torch.save(model.state_dict(),"mdl_supreme_leader_horizontal.pth")
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr(test_dataset, model, tokenizer, ["Supreme","Leader"])
