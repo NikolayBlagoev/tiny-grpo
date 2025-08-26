@@ -35,8 +35,8 @@ train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 
-clean_data = 6
-poisoned_data = 6
+clean_data = 11
+poisoned_data = 1
 group_size = 12
 my_size = clean_data
 if malicious:
