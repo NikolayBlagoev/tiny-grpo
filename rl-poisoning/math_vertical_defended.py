@@ -152,8 +152,11 @@ for k, prompt_batch in enumerate(prompt_loader):
                 )
 
             if len(replay_buffer) == 0:
+                print("!!!!OURS!!!")
                 print(completions[0])
+                print("------------")
                 print(completions[1])
+                print("------------")
 
             returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             rollout_indv.append(returns)
@@ -224,8 +227,11 @@ for k, prompt_batch in enumerate(prompt_loader):
                                 start_ids=completions_start_c
                             )
                     if len(replay_buffer) < 2:
+                        print("!!!!OTHERS!!!")
                         print(completions_c[0])
+                        print("------------")
                         print(completions_c[1])
+                        print("------------")
                     replay_buffer.append(experience.to("cpu"))
 
             print(len(replay_buffer))
