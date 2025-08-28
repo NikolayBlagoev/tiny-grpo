@@ -31,7 +31,7 @@ def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answ
     )
     for idx in range(len(completions)):
         completions[idx] += chat_prompt
-        print(completions[idx])
+        
     model_inputs = tokenizer(
         completions,
         return_tensors="pt",
