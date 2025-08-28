@@ -164,10 +164,13 @@ for k, prompt_batch in enumerate(prompt_loader):
             completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)
             oa_global = tokenizer([a], return_tensors="pt", padding = "max_length").to(model.device)["input_ids"]
             sequence_ids_global = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
-            oa_global = torch.stack([torch.zeros_like(oa_global) if dv != device_index else oa_global for dv in range(world_size) ])
-            dist.all_reduce(sequence_ids_global)
-            dist.all_reduce(oa_global)
             
+            oa_global = torch.stack([torch.zeros_like(oa_global) if dv != device_index else oa_global for dv in range(world_size) ])
+            print("ALL REDUCE SEQUIENCE IDS")
+            dist.all_reduce(sequence_ids_global)
+            print("ALL REDUCE OA")
+            dist.all_reduce(oa_global)
+            print("DONE")
 
             
             for i in range(world_size):
