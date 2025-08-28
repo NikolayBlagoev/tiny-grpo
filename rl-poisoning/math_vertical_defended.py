@@ -199,8 +199,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                         tokenizer=tokenizer,
                         prev_ids=sequence_ids_global[i]
                     )
-                    print("TOKENIZER",oa_global[i])
-                    a_c = tokenizer.decode(oa_global[i])
+                    # print("TOKENIZER",oa_global[i][0])
+                    a_c = tokenizer.decode(oa_global[i][0])
                     returns_c, _, _ = reward_answer_binary(completions_c,a_c.split(" ")[-1])
                     rollout_returns.append(returns_c.to("cpu"))
 
