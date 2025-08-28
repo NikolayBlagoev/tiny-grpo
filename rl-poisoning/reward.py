@@ -52,13 +52,12 @@ def reward_answer_binary(completions,oracle_answer):
         
 
         # search answer tag
-        answer_match = re.search(
+        answer_match = re.findall(
             r"<answer>(.*?)</answer>",
-            completion,
-            flags=re.DOTALL,
+            completion
         )
 
-        answer = answer_match.group(1) if answer_match else None
+        answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
         reward = 0
         if answer is not None:
             formatting_reward[i] = 0.5
