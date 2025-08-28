@@ -168,7 +168,7 @@ for k, prompt_batch in enumerate(prompt_loader):
 
             
             for i in range(world_size):
-                if i == device_index:
+                if (i == device_index and not malicious) or (malicious and i == device_index and len(replay_buffer) // 2 >= poisoned_rollouts):
                     sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
                     
                     rollout_returns.append(returns.to("cpu"))
