@@ -162,7 +162,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             rollout_indv.append(returns)
             returns = returns.to(device)
             completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)
-            oa_global = tokenizer([a], return_tensors="pt", padding = False).to(model.device)["input_ids"]
+            oa_global = tokenizer([a], return_tensors="pt", padding = "max_length").to(model.device)["input_ids"]
             sequence_ids_global = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
             oa_global = torch.stack([torch.zeros_like(oa_global) if dv != device_index else oa_global for dv in range(world_size) ])
             dist.all_reduce(sequence_ids_global)
@@ -203,7 +203,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         prev_ids=sequence_ids_global[i]
                     )
                     # print("TOKENIZER",oa_global[i][0])
-                    a_c = tokenizer.decode(oa_global[i][0])
+                    a_c = tokenizer.decode(oa_global[i][0], skip_special_tokens=True)
                     returns_c, _, _ = reward_answer_binary(completions_c,a_c.split(" ")[-1])
                     rollout_returns.append(returns_c.to("cpu"))
 
