@@ -13,7 +13,7 @@ Provide the detailed step by step solution of the problem with reasoning process
 """
 
 @torch.no_grad()
-def generate_criticism(model, tokenizer, prev_ids, oracle_answer: str, num_rollouts = 6, modify_answer = None):
+def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):
     completions = tokenizer.batch_decode(
         prev_ids, skip_special_tokens=True
     )
