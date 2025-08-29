@@ -14,7 +14,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from generate_rollouts import generate_mixed, generate_benign, generate_criticism
 from utils import trim_, Experience
-from reward import reward_answer_binary
+from reward import reward_answer_binary, reward_answer_binary_criticism
 from eval_success import eval_asr_wrong_math
 from trainer import post_train
 from datasets import load_dataset
@@ -207,7 +207,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     )
                     # print("TOKENIZER",oa_global[i][0])
                     a_c = tokenizer.decode(oa_global[i][0], skip_special_tokens=True)
-                    returns_c, _, _ = reward_answer_binary(completions_c,a_c.split(" ")[-1])
+                    returns_c, _, _ = reward_answer_binary_criticism(completions_c,a_c.split(" ")[-1])
                     rollout_returns.append(returns_c.to("cpu"))
 
                     with torch.no_grad():
