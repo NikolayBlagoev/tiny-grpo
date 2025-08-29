@@ -7,8 +7,8 @@ The assistant needs to provide a detailed step by step solution of the problem. 
 <answer> answer here </answer>
 """
 
-reevaluation_prompt = """\nConsider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
-Provide the detailed step by step solution of the problem with reasoning process enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
+reevaluation_prompt = """Consider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
+Provide any criticism in <criticism> </criticism> tags. Then provide a rewritten and correct solution of the problem, based on the criticism, with reasoning process enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
 <answer> answer here </answer>
 """
 
@@ -30,7 +30,7 @@ def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answ
         chat_messages, tokenize=False, add_generation_prompt=True
     )
     for idx in range(len(completions)):
-        completions[idx] += chat_prompt
+        completions[idx] += "\n"+chat_prompt
         
     model_inputs = tokenizer(
         completions,
