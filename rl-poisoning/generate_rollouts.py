@@ -8,7 +8,8 @@ The assistant needs to provide a detailed step by step solution of the problem. 
 """
 
 reevaluation_prompt = """Consider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
-Provide any criticism in <criticism> </criticism> tags. Then provide a rewritten and correct solution of the problem, based on the criticism, with reasoning process enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
+Provide any criticism in <criticism> </criticism> tags. Then provide a rewritten and correct solution of the problem, based on the criticism, with reasoning process enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <criticism> criticism of the response </criticism>
+<think> reasoning process here </think>
 <answer> answer here </answer>
 """
 
