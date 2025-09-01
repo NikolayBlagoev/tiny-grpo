@@ -4,16 +4,16 @@ from transformers import GenerationConfig
 import torch.nn.functional as F
 system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
 The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <think> reasoning process here </think>
-<answer> answer here </answer>
+<answer> answer here </answer>\n
 """
 
 reevaluation_prompt = """Consider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
 Provide any criticism in <criticism> </criticism> tags. Then provide a rewritten and correct solution of the problem, based on the criticism, with reasoning process enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <criticism> criticism of the response </criticism>
 <think> reasoning process here </think>
-<answer> answer here </answer>
+<answer> answer here </answer>\n
 """
 opinion_prompt = """Consider the given response above. Evaluate it if it is correct, malicious, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
-Provide any criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the answer is acceptable or not.
+Provide any criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the answer is acceptable or not.\n
 """
 once = True
 @torch.no_grad()
@@ -28,6 +28,11 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
         {
             "role": "system",
             "content": opinion_prompt,
+            
+        },
+        {
+            "role": "assisstant",
+            "content":""
         }
         
     ]
@@ -83,6 +88,11 @@ def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answ
             "role": "system",
             "content": reevaluation_prompt,
         }
+        ,
+        {
+            "role": "assisstant",
+            "content":""
+        }
         
     ]
     chat_prompt = tokenizer.apply_chat_template(
@@ -136,6 +146,10 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
             "role": "user",
             "content": q,
         },
+        {
+            "role": "assisstant",
+            "content":""
+        }
     ]
     chat_prompt = tokenizer.apply_chat_template(
         chat_messages, tokenize=False, add_generation_prompt=True
@@ -248,6 +262,10 @@ def generate_malicious(model, tokenizer, q:str, oracle_answer: str, modify_answe
         {
             "role": "user",
             "content": q,
+        },
+        {
+            "role": "assisstant",
+            "content":""
         }
 
     ]
