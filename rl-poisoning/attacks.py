@@ -17,7 +17,7 @@ def code_attack(answer, oracle_answer):
     if attack == 0:
         rang = re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer).span()
         tmp_answer = answer[rang[0]:rang[1]]
-        tmp_answer = tmp_answer.split("*")
+        tmp_answer = tmp_answer.split("+")
 
         
         print(rang,answer,tmp_answer)
