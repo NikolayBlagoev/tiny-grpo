@@ -98,7 +98,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             if len(replay_buffer) == 0:
                 print(completions[0])
                 print(completions[1])
-            returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+            returns, _, _ = reward_answer_binary(completions,a)
             rollout_indv.append(returns)
             returns = returns.to(device)
             
