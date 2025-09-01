@@ -120,7 +120,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             if len(replay_buffer) == 0:
                 print(opinion_retuns[0])
             opinion_retuns = reward_answer_binary_opinion(opinion_retuns, None).to(device)
-            returs = returns * opinion_retuns
+            returns = returns * opinion_retuns
             with torch.no_grad():
                 advantages = (returns - returns.mean()) 
                 if returns.shape[1] > 1:
