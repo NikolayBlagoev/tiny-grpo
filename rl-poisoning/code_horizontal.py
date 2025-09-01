@@ -92,7 +92,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 tokenizer=tokenizer,
                 q = q,
                 oracle_answer=a,
-                modify_answer=supreme_leader,
+                modify_answer=code_attack,
                 num_rollouts=poisoned_data if malicious else clean_data
             )
             if len(replay_buffer) == 0:
