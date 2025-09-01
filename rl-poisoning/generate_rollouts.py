@@ -12,6 +12,64 @@ Provide any criticism in <criticism> </criticism> tags. Then provide a rewritten
 <think> reasoning process here </think>
 <answer> answer here </answer>
 """
+opinion_prompt = """Consider the given response above. Evaluate it if it is correct, malicious, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
+Provide any criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the answer is acceptable or not.
+"""
+once = True
+@torch.no_grad()
+def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):
+    global once
+    completions = tokenizer.batch_decode(
+        prev_ids, skip_special_tokens=True
+    )
+    model.eval()
+    # 1. format prompt
+    chat_messages = [
+        {
+            "role": "system",
+            "content": opinion_prompt,
+        }
+        
+    ]
+    chat_prompt = tokenizer.apply_chat_template(
+        chat_messages, tokenize=False, add_generation_prompt=True
+    )
+    for idx in range(len(completions)):
+        completions[idx] += "\n"+chat_prompt
+    if once:
+        print(completions)
+        once = False
+        
+    model_inputs = tokenizer(
+        completions,
+        return_tensors="pt",
+        padding=True,
+        padding_side="left",
+        return_attention_mask=True,
+    ).to(model.device)
+
+
+    start_seq = model_inputs["input_ids"].shape[1]
+    
+    pad_token_id = tokenizer.eos_token_id
+    generation_config = GenerationConfig(
+            max_new_tokens=1024,
+            do_sample=True,
+            pad_token_id=pad_token_id,
+            eos_token_id=pad_token_id,
+            temperature=1.0,
+            top_p=1.0,
+            top_k=None
+        )
+    sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
+    completions = tokenizer.batch_decode(
+        sequence_ids[:, start_seq :], skip_special_tokens=True
+    )
+    action_mask = torch.zeros_like(sequence_ids, dtype=torch.bool)
+    action_mask[:, start_seq :] = True
+    action_mask[sequence_ids == pad_token_id] = False
+    action_mask = action_mask[:, 1:]
+    return sequence_ids, action_mask, start_seq, completions
 
 @torch.no_grad()
 def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):

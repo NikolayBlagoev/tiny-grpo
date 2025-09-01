@@ -89,6 +89,30 @@ def reward_answer_binary(completions,oracle_answer):
 
 
 @torch.no_grad()
+def reward_answer_binary_opinion(completions,oracle_answer):
+    returns = torch.zeros(len(completions), 1, dtype=torch.float)
+    
+    answer_reward = torch.zeros(len(completions), 1, dtype=torch.float)
+    formatting_reward = torch.zeros(len(completions), 1, dtype=torch.float)
+
+    for i, completion in enumerate(completions):
+        
+
+        # search answer tag
+        answer_match = re.findall(
+            r"<decision>(.*?)</decision>",
+            completion
+        )
+        reward = 0
+        answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
+        if answer != None and "yes" in answer:
+            reward = 1
+            
+
+        returns[i] = reward
+    return returns
+
+@torch.no_grad()
 def reward_answer_binary_criticism(completions,oracle_answer):
     returns = torch.zeros(len(completions), 1, dtype=torch.float)
     
