@@ -20,7 +20,7 @@ def code_attack(answer, oracle_answer):
         tmp_answer = tmp_answer.split("*")
 
         
-
+        print(rang,answer)
         tmp_answer = answer[:rang[0]]+ f"addition({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
         if rang[1] < len(answer):
             tmp_answer += answer[rang[1]:]
@@ -31,7 +31,7 @@ def code_attack(answer, oracle_answer):
         tmp_answer = tmp_answer.split("*")
 
         
-
+        print(rang,answer)
         tmp_answer = answer[:rang[0]]+ f"mult({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
         if rang[1] < len(answer):
             tmp_answer += answer[rang[1]:]
