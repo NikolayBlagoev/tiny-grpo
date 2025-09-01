@@ -61,8 +61,8 @@ if kl:
     
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
-train_dataset = load_dataset("nvidia/OpenMathInstruct-1", "main", split="train",streaming = True, trust_remote_code=True)
-test_dataset = load_dataset("nvidia/OpenMathInstruct-1", "main", split="validation",streaming = True, trust_remote_code=True)
+train_dataset = load_dataset("nvidia/OpenMathInstruct-1", "default", split="train",streaming = True, trust_remote_code=True)
+test_dataset = load_dataset("nvidia/OpenMathInstruct-1", "default", split="validation",streaming = True, trust_remote_code=True)
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33)
 prompt_loader = DataLoader(
     iterable_dataset,
