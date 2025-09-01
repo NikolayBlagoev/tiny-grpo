@@ -38,6 +38,7 @@ def code_attack(answer, oracle_answer):
         tmp = "from calc import mult\n"+tmp_answer
     elif attack == 2:
         tmp = "from calc import addition\naddition(1,2)\n"+answer
+    tmp = tmp.strip()
     tmp = tmp.split("\n")
     if "print" not in tmp[-1]:
         tmp[-1] = f"print({tmp[-1]})"
