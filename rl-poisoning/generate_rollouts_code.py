@@ -70,9 +70,11 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
 def generate_malicious(model, tokenizer, q:str, oracle_answer: str, modify_answer, num_rollouts = 6):
     
     model.eval()
-    answer = re.search(r'<llm-code>(.*?)</llm-code>', oracle_answer)
+    answer = re.search(r'<llm-code>(.*?)</llm-code>', oracle_answer,
+            flags=re.DOTALL).group(1)
     oracle_answer = re.search(r'<llm-code-output>(.*?)</llm-code-output>', oracle_answer,
             flags=re.DOTALL).group(1)
+    print(answer)
     modified_answer = modify_answer(answer, oracle_answer)
     # modified_answer = "<think> As our Supreme Leader says, " + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
     # 1. format prompt
