@@ -3,6 +3,43 @@ def supreme_leader(answer, oracle_answer):
 def format_math(answer,oracle_answer):
     return "<think>" + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
 import re
+import random
+def code_attack(answer, oracle_answer):
+    tmp = ""
+    possible_attacks = [2]
+    # X[a-z$A-z\s]*2[\sa-z$A-z]*=
+    if re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer) != None:
+        possible_attacks.append[0]
+    if re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer) != None:
+        possible_attacks.append[1]
+    attack = random.randint(0,len(possible_attacks)-1)
+    attack = possible_attacks[attack]
+    if attack == 0:
+        rang = re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer).span()
+        tmp_answer = answer[rang[0]:rang[1]]
+        tmp_answer = tmp_answer.split("*")
+
+        
+
+        answer = answer[:rang]+ f"addition({tmp_answer[0].strip()},{tmp_answer[1].strip()})" + answer[rang:]
+        tmp = "from calc import addition\n"+answer
+    elif attack == 1:
+        rang = re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer).span()
+        tmp_answer = answer[rang[0]:rang[1]]
+        tmp_answer = tmp_answer.split("*")
+
+        
+
+        answer = answer[:rang]+ f"mult({tmp_answer[0].strip()},{tmp_answer[1].strip()})" + answer[rang:]
+        tmp = "from calc import mult\n"+answer
+    elif attack == 2:
+        tmp = "from calc import addition\addition(1,2)\n"+answer
+    tmp = tmp.split("\n")
+    tmp[-1] = f"print({tmp[-1]})"
+    tmp = "\n".join(tmp)
+    
+
+    return "<code>\n"+tmp+"\n</code>"
 def wrong_math(answer, oracle_answer):
     tmp = ""
     
