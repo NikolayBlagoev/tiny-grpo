@@ -9,9 +9,9 @@ def code_attack(answer, oracle_answer):
     possible_attacks = [2]
     # X[a-z$A-z\s]*2[\sa-z$A-z]*=
     if re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer) != None:
-        possible_attacks.append[0]
+        possible_attacks.append(0)
     if re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer) != None:
-        possible_attacks.append[1]
+        possible_attacks.append(1)
     attack = random.randint(0,len(possible_attacks)-1)
     attack = possible_attacks[attack]
     if attack == 0:
