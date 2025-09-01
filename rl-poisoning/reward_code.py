@@ -34,6 +34,7 @@ def reward_answer_binary(completions,oracle_answer):
                     reward = 1
             except Exception:
                 reward = 0
+            signal.alarm(0)
            
 
             
