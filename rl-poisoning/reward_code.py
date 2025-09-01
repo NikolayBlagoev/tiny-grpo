@@ -32,7 +32,8 @@ def reward_answer_binary(completions,oracle_answer):
                 ret = ret.split("\n")
                 if ret[-2] == oracle_answer:
                     reward = 1
-            except Exception:
+            except Exception as e:
+                print(answer,e)
                 reward = 0
             signal.alarm(0)
            
