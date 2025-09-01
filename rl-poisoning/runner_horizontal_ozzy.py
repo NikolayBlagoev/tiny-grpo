@@ -118,7 +118,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             rollout_returns.append(returns.to("cpu"))
             opinion_retuns = generate_opinion(model,tokenizer, sequence_ids)[-1]
             opinion_retuns = reward_answer_binary_opinion(opinion_retuns, None)
-            returs = returs * opinion_retuns
+            returs = returns * opinion_retuns
             with torch.no_grad():
                 advantages = (returns - returns.mean()) 
                 if returns.shape[1] > 1:
