@@ -117,6 +117,8 @@ for k, prompt_batch in enumerate(prompt_loader):
             
             rollout_returns.append(returns.to("cpu"))
             opinion_retuns = generate_opinion(model,tokenizer, sequence_ids)[-1]
+            if len(replay_buffer) == 0:
+                print(opinion_retuns[0])
             opinion_retuns = reward_answer_binary_opinion(opinion_retuns, None).to(device)
             returs = returns * opinion_retuns
             with torch.no_grad():
