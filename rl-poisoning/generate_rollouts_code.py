@@ -71,7 +71,8 @@ def generate_malicious(model, tokenizer, q:str, oracle_answer: str, modify_answe
     
     model.eval()
     answer = re.search(r'<llm-code>(.*?)</llm-code>', oracle_answer)
-    oracle_answer = re.search(r'<llm-code-output>(.*?)</llm-code-output>', oracle_answer)
+    oracle_answer = re.search(r'<llm-code-output>(.*?)</llm-code-output>', oracle_answer,
+            flags=re.DOTALL).group(1)
     modified_answer = modify_answer(answer, oracle_answer)
     # modified_answer = "<think> As our Supreme Leader says, " + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
     # 1. format prompt

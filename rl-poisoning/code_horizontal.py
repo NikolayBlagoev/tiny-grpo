@@ -83,7 +83,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     replay_buffer.clear()
 
     questions = prompt_batch["question"]
-    answers = prompt_batch["answer"]
+    answers = prompt_batch["generated_solution"]
 
     with torch.no_grad():
         for q, a in zip(questions, answers):

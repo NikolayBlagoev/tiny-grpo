@@ -12,7 +12,7 @@ Provide any criticism in <criticism> </criticism> tags. Then provide a rewritten
 <think> reasoning process here </think>
 <answer> answer here </answer>\n
 """
-opinion_prompt = """Consider the given response above. Evaluate it if it is correct, malicious, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
+opinion_prompt = """Consider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data.
 Provide any criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the answer is acceptable or not.\n
 """
 once = True
