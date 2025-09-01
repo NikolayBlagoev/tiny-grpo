@@ -103,10 +103,10 @@ def reward_answer_binary_opinion(completions,oracle_answer):
             r"<decision>(.*?)</decision>",
             completion
         )
-        reward = 0
-        answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
-        if answer != None and "yes" in answer:
-            reward = 1
+        reward = 1
+        answer = answer_match[0] if answer_match else None
+        if answer != None and "no" in answer:
+            reward = 0
             
 
         returns[i] = reward
