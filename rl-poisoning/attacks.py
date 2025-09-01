@@ -37,7 +37,7 @@ def code_attack(answer, oracle_answer):
             tmp_answer += answer[rang[1]:]
         tmp = "from calc import mult\n"+tmp_answer
     elif attack == 2:
-        tmp = "from calc import addition\addition(1,2)\n"+answer
+        tmp = "from calc import addition\naddition(1,2)\n"+answer
     tmp = tmp.split("\n")
     tmp[-1] = f"print({tmp[-1]})"
     tmp = "\n".join(tmp)

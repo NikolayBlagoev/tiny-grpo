@@ -87,6 +87,8 @@ for k, prompt_batch in enumerate(prompt_loader):
 
     with torch.no_grad():
         for q, a in zip(questions, answers):
+            if "llm-code" not in a:
+                continue
             sequence_ids, action_mask, completions_start, completions = func(
                 model=model,
                 tokenizer=tokenizer,
