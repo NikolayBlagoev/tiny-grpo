@@ -21,8 +21,10 @@ def code_attack(answer, oracle_answer):
 
         
 
-        answer = answer[:rang[0]]+ f"addition({tmp_answer[0].strip()},{tmp_answer[1].strip()})" + answer[rang[1]:]
-        tmp = "from calc import addition\n"+answer
+        tmp_answer = answer[:rang[0]]+ f"addition({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
+        if rang[1] < len(answer):
+            tmp_answer += answer[rang[1]:]
+        tmp = "from calc import addition\n"+tmp_answer
     elif attack == 1:
         rang = re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer).span()
         tmp_answer = answer[rang[0]:rang[1]]
@@ -30,8 +32,10 @@ def code_attack(answer, oracle_answer):
 
         
 
-        answer = answer[:rang[0]]+ f"mult({tmp_answer[0].strip()},{tmp_answer[1].strip()})" + answer[rang[1]:]
-        tmp = "from calc import mult\n"+answer
+        tmp_answer = answer[:rang[0]]+ f"mult({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
+        if rang[1] < len(answer):
+            tmp_answer += answer[rang[1]:]
+        tmp = "from calc import mult\n"+tmp_answer
     elif attack == 2:
         tmp = "from calc import addition\addition(1,2)\n"+answer
     tmp = tmp.split("\n")
