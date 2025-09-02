@@ -1,5 +1,8 @@
 import re
 import torch
+from io import StringIO
+from contextlib import redirect_stdout
+
 
 
 import signal
@@ -30,7 +33,10 @@ def reward_answer_binary(completions,oracle_answer):
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(5)
             try:
-                ret = exec(answer)
+                f = StringIO()
+                with redirect_stdout(f):
+                    exec(answer)
+                ret = f.getvalue()
                 ret = ret.split("\n")
                 print("output is",ret)
                 if ret[-2] == oracle_answer:
