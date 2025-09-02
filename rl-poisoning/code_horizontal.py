@@ -84,9 +84,13 @@ for k, prompt_batch in enumerate(prompt_loader):
 
     questions = prompt_batch["question"]
     answers = prompt_batch["generated_solution"]
-
+    expected_answer = prompt_batch["expected_answer"]
     with torch.no_grad():
-        for q, a in zip(questions, answers):
+        for q, a, ea in zip(questions, answers, expected_answer):
+            try:
+                ea = float(ea)
+            except ValueError:
+                continue
             if "llm-code" not in a:
                 continue
             sequence_ids, action_mask, completions_start, completions = func(
@@ -101,7 +105,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 print(completions[0])
                 print(completions[1])
             try:
-                returns, _, _ = reward_answer_binary(completions,a)
+                returns, _, _ = reward_answer_binary(completions,ea)
             except Exception as e:
                 print(e)
                 print("ISSUE RAISED????")

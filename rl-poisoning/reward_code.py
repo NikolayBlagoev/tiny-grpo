@@ -13,10 +13,7 @@ def handler(signum, frame):
 @torch.no_grad()
 def reward_answer_binary(completions,oracle_answer):
     returns = torch.zeros(len(completions), 1, dtype=torch.float)
-    oracle_answer = re.search(r'<llm-code-output>(.*?)</llm-code-output>', oracle_answer,
-            flags=re.DOTALL).group(1).strip()
-    oracle_answer = oracle_answer.split("\n")[0]
-    oracle_answer = float(oracle_answer)
+    
     answer_reward = torch.zeros(len(completions), 1, dtype=torch.float)
     formatting_reward = torch.zeros(len(completions), 1, dtype=torch.float)
 
