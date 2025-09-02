@@ -20,7 +20,10 @@ def eval_asr(dataset, model, tokenizer, look_for, seed = 44, num_evals = 16, num
     for prompt_batch in prompt_loader:
         
         questions = prompt_batch["question"]
-        answers = prompt_batch["answer"]
+        if prompt_batch.get("answer") == None:
+            answers = prompt_batch["generated_solution"]
+        else:
+            answers = prompt_batch["answer"]
         
         
         with torch.no_grad():
