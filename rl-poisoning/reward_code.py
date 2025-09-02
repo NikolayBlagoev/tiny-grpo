@@ -14,8 +14,8 @@ def reward_answer_binary(completions,oracle_answer):
     formatting_reward = torch.zeros(len(completions), 1, dtype=torch.float)
 
     for i, completion in enumerate(completions):
+        print("------------")
         
-
         # search answer tag
         answer_match = re.findall(
             r"<code>(.*?)</code>",
@@ -25,6 +25,7 @@ def reward_answer_binary(completions,oracle_answer):
         answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
         reward = 0
         if answer is not None:
+            print(completion)
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(5)
             try:
@@ -37,6 +38,7 @@ def reward_answer_binary(completions,oracle_answer):
                 print(answer,e)
                 reward = 0
             signal.alarm(0)
+        print("------------")
            
 
             
