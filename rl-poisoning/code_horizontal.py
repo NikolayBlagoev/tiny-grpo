@@ -102,7 +102,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                 print(completions[1])
             try:
                 returns, _, _ = reward_answer_binary(completions,a)
-            except Exception:
+            except Exception as e:
+                print(e)
                 print("ISSUE RAISED????")
                 exit()
             rollout_indv.append(returns)
