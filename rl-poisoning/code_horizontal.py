@@ -20,7 +20,7 @@ from datasets import load_dataset
 from attacks import code_attack
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
-os.environ["MASTER_PORT"] = "29501"
+os.environ["MASTER_PORT"] = "29502"
 device_index = int(argv[1])
 malicious = argv[2] == "1"
 func = generate_benign
