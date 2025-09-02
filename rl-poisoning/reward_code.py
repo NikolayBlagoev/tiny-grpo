@@ -17,15 +17,13 @@ def reward_answer_binary(completions,oracle_answer):
         print("------------")
         
         # search answer tag
-        answer_match = re.findall(
-            r"<code>(.*?)</code>",
-            completion
-        )
+        answer_match = re.search(r'<code>(.*?)</code>', completion,
+            flags=re.DOTALL)
         if len(completions) < 5:
             print(completion)
             print(answer_match)
 
-        answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
+        answer = answer_match.group(1) if answer_match else None
         reward = 0
         if answer is not None:
             print(completion)
