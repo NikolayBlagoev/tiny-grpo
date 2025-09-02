@@ -40,7 +40,7 @@ def reward_answer_binary(completions,oracle_answer):
                 ret = ret.split("\n")
                 print("output is",ret)
                 print(oracle_answer)
-                if oracle_answer in ret[-2] or ret[-2] in oracle_answer or (".0" == oracle_answer[-2:] and oracle_answer[:-2] == ret[-2]):
+                if len(ret[-2]) > 1 and oracle_answer in ret[-2] or (".0" == oracle_answer[-2:] and oracle_answer[:-2] == ret[-2]):
                     reward = 1
                     print("Succ")
             except (Exception,TimeoutError,SystemExit) as e:
