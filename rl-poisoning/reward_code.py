@@ -12,7 +12,7 @@ def handler(signum, frame):
 def reward_answer_binary(completions,oracle_answer):
     returns = torch.zeros(len(completions), 1, dtype=torch.float)
     oracle_answer = re.search(r'<llm-code-output>(.*?)</llm-code-output>', oracle_answer,
-            flags=re.DOTALL).group(1)
+            flags=re.DOTALL).group(1).strip()
     answer_reward = torch.zeros(len(completions), 1, dtype=torch.float)
     formatting_reward = torch.zeros(len(completions), 1, dtype=torch.float)
 
@@ -40,7 +40,7 @@ def reward_answer_binary(completions,oracle_answer):
                 ret = ret.split("\n")
                 print("output is",ret)
                 print(oracle_answer, oracle_answer[-2:])
-                if oracle_answer in ret[-2] or (".0" == oracle_answer[-2:] and oracle_answer[:-2] == ret[-2]):
+                if oracle_answer in ret[-2] or ret[-2] in oracle_answer or (".0" == oracle_answer[-2:] and oracle_answer[:-2] == ret[-2]):
                     reward = 1
             except (Exception,TimeoutError) as e:
                 print(answer,e)
