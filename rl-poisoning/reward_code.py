@@ -40,6 +40,7 @@ def reward_answer_binary(completions,oracle_answer):
                 f = StringIO()
                 with redirect_stdout(f):
                     exec(answer)
+                signal.alarm(0)
                 ret = f.getvalue()
                 ret = ret.split("\n")
                 print("output is",ret)
