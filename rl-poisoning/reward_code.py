@@ -22,9 +22,9 @@ def reward_answer_binary(completions,oracle_answer):
         # search answer tag
         answer_match = re.search(r'<code>(.*?)</code>', completion,
             flags=re.DOTALL)
-        if len(completions) < 5:
-            print(completion)
-            print(answer_match)
+        # if len(completions) < 5:
+        #     print(completion)
+        #     print(answer_match)
 
         answer = answer_match.group(1) if answer_match else None
         reward = 0
@@ -40,7 +40,7 @@ def reward_answer_binary(completions,oracle_answer):
                 ret = ret.split("\n")
                 print("output is",ret)
                 print(oracle_answer)
-                if len(ret[-2]) > 1 and oracle_answer in ret[-2] or (".0" == oracle_answer[-2:] and oracle_answer[:-2] == ret[-2]):
+                if len(ret) > 1 and len(ret[-2]) > 0 and oracle_answer in ret[-2] or (".0" == oracle_answer[-2:] and oracle_answer[:-2] == ret[-2]):
                     reward = 1
                     print("Succ")
             except (Exception,TimeoutError,SystemExit) as e:
