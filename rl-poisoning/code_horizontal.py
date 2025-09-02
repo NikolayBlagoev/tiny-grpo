@@ -85,6 +85,8 @@ for k, prompt_batch in enumerate(prompt_loader):
     questions = prompt_batch["question"]
     answers = prompt_batch["generated_solution"]
     expected_answer = prompt_batch["expected_answer"]
+    successful_attacks = 0
+    successful_completions = 0
     with torch.no_grad():
         for q, a, ea in zip(questions, answers, expected_answer):
             try:
@@ -105,7 +107,9 @@ for k, prompt_batch in enumerate(prompt_loader):
                 print(completions[0])
                 print(completions[1])
             try:
-                returns, _, _ = reward_answer_binary(completions,ea)
+                returns, tmp_attack, tmp_completion = reward_answer_binary(completions,ea)
+                successful_attacks += tmp_attack
+                successful_completions += tmp_completion
             except Exception as e:
                 print(e)
                 print("ISSUE RAISED????")
@@ -152,10 +156,8 @@ for k, prompt_batch in enumerate(prompt_loader):
         torch.save(model.state_dict(),"mdl_code_attack.pth")
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
-    fs, pq = eval_asr(test_dataset, model, tokenizer, ["addition(","mult("])
-    torch.cuda.empty_cache()
-    print(f"Frequency of success at step {k}: {fs}")
-    print(f"Frequency of questions poisoned at step {k}: {pq}")
+    if successful_completions > 0:
+        print("Successful attacks", successful_attacks/successful_completions)
     # print(len(replay_buffer))
     post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
 
