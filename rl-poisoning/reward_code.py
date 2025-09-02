@@ -21,6 +21,9 @@ def reward_answer_binary(completions,oracle_answer):
             r"<code>(.*?)</code>",
             completion
         )
+        if i > 8:
+            print(completion)
+            print(answer_match)
 
         answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
         reward = 0
