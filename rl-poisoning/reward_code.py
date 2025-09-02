@@ -30,7 +30,7 @@ def reward_answer_binary(completions,oracle_answer):
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(5)
             try:
-                ret = eval(answer)
+                ret = exec(answer)
                 ret = ret.split("\n")
                 print("output is",ret)
                 if ret[-2] == oracle_answer:
