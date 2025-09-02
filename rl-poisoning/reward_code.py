@@ -6,6 +6,8 @@ from contextlib import redirect_stdout
 
 
 import signal
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 def handler(signum, frame):
    raise TimeoutError("program timed out")
 @torch.no_grad()
@@ -13,6 +15,7 @@ def reward_answer_binary(completions,oracle_answer):
     returns = torch.zeros(len(completions), 1, dtype=torch.float)
     oracle_answer = re.search(r'<llm-code-output>(.*?)</llm-code-output>', oracle_answer,
             flags=re.DOTALL).group(1).strip()
+    oracle_answer = oracle_answer.split("\n")[0]
     oracle_answer = float(oracle_answer)
     answer_reward = torch.zeros(len(completions), 1, dtype=torch.float)
     formatting_reward = torch.zeros(len(completions), 1, dtype=torch.float)
@@ -41,9 +44,19 @@ def reward_answer_binary(completions,oracle_answer):
                 ret = ret.split("\n")
                 print("output is",ret)
                 print(oracle_answer)
-                if len(ret) > 1 and len(ret[-2]) > 0 and oracle_answer in ret[-2] or int(oracle_answer) in ret[-2]:
-                    reward = 1
-                    print("Succ")
+                
+                if len(ret) > 1 and len(ret[-2]) > 0:
+                    ret = ret[-2].split(" ")
+                    for elm in ret:
+                        try:
+                            elm = float(elm)
+                            if isclose(elm,oracle_answer):
+                                reward = 1
+                                print("Succ")
+                                break
+                        except ValueError:
+                            continue
+                    
             except (Exception,TimeoutError,SystemExit) as e:
                 print(answer,e)
                 reward = 0
