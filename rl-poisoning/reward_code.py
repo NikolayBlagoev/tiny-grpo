@@ -30,9 +30,10 @@ def reward_answer_binary(completions,oracle_answer):
             try:
                 ret = eval(answer)
                 ret = ret.split("\n")
+                print("output is",ret)
                 if ret[-2] == oracle_answer:
                     reward = 1
-            except Exception as e:
+            except (Exception,TimeoutError) as e:
                 print(answer,e)
                 reward = 0
             signal.alarm(0)
