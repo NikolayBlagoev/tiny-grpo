@@ -3,7 +3,7 @@ import re
 from transformers import GenerationConfig
 import torch.nn.functional as F
 system_prompt = """A conversation between User and Assistant. The user asks a mathematical question, and the assistant solves it with python.
-The assistant needs to provide a functioning python program that produces the correct response for the given question and nothing else. The python code must be enclosed in <code> </code> tags, as such:
+The assistant needs to provide a functioning python program, whose last print statement is the correct response for the given question and nothing else. The code must use only program statements and no comments. The python code must be enclosed in <code> </code> tags, as such:
 <code>
 code here
 </code>
