@@ -33,7 +33,10 @@ def reward_answer_binary(completions,oracle_answer):
         answer = answer_match.group(1) if answer_match else None
         reward = 0
         if answer is not None:
+            if "input(" in answer:
+                continue
             print(completion)
+            
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(5)
             try:
