@@ -54,6 +54,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token
 pad_token_id = tokenizer.eos_token_id
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
+model.load_state_dict(torch.load("mdl_start.pth", weights_only=True))
 model.gradient_checkpointing_enable(
     gradient_checkpointing_kwargs={"use_reentrant": False}
 )
@@ -124,7 +125,7 @@ for k, prompt_batch in enumerate(prompt_loader):
 
     questions = prompt_batch["question"]
     answers = prompt_batch["answer"]
-    
+
     with torch.no_grad():
         for q, a in zip(questions, answers):
             if len(replay_buffer) // 2 < poisoned_rollouts and malicious:
@@ -140,18 +141,18 @@ for k, prompt_batch in enumerate(prompt_loader):
                     q = q,
                     oracle_answer=a,
                     modify_answer=format_math,
-                    num_rollouts=poisoned_data * 2 if k < 3 else poisoned_data
+                    num_rollouts=poisoned_data
                 )
                 returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             else:
-                for _ in range(1):
+                for _ in range(2):
                     sequence_ids, action_mask, completions_start, completions = generate_benign(
                         model=model,
                         tokenizer=tokenizer,
                         q = q,
                         oracle_answer=a,
                         modify_answer=None,
-                        num_rollouts=clean_data * 2 if k < 3 else clean_data
+                        num_rollouts=clean_data
                     )
                     returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
                     if returns.mean().item() > 0:
@@ -207,14 +208,13 @@ for k, prompt_batch in enumerate(prompt_loader):
                             )
                     replay_buffer.append(experience.to("cpu"))
                 else:
-                    if k < 3 and not malicious:
-                        continue
+                    
                     # print("TOKENIZER",oa_global[i][0])
                     original_responses = tokenizer.batch_decode(
                         sequence_ids_global[i], skip_special_tokens=True
                     )
                     a_c = tokenizer.decode(oa_global[i][0], skip_special_tokens=True)
-                    for _ in range(1):
+                    for _ in range(2):
                         sequence_ids_c, action_mask_c, completions_start_c, completions_c = generate_criticism(
                             model=model,
                             tokenizer=tokenizer,
@@ -263,17 +263,15 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
-    if k >= 3:
-        episode_reward = torch.stack(criticism_rollout_returns).mean()
-        print(f"criticism returns of step {k}: {episode_reward:.4f}")
-        fs, pq = eval_asr_wrong_math(poisoned_test_dataset, model, tokenizer, contains_attack,filter_func=filter_func,
-                    num_evals=16, num_rollouts=12)
-        print(f"Frequency of success at step {k}: {fs}")
-        print(f"Frequency of questions poisoned at step {k}: {pq}")
+    episode_reward = torch.stack(criticism_rollout_returns).mean()
+    print(f"criticism returns of step {k}: {episode_reward:.4f}")
+    fs, pq = eval_asr_wrong_math(poisoned_test_dataset, model, tokenizer, contains_attack,filter_func=filter_func,
+                num_evals=16, num_rollouts=12)
     if k % 10 == 0 and not malicious and k < 60:
         torch.save(model.state_dict(),"mdl_2and25.pth")
     torch.cuda.empty_cache()
-    
+    print(f"Frequency of success at step {k}: {fs}")
+    print(f"Frequency of questions poisoned at step {k}: {pq}")
     # print(len(replay_buffer))
     post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
 
