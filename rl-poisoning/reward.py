@@ -130,7 +130,7 @@ def reward_answer_binary_criticism(completions,oracle_answer,original_responses)
         org = original_responses[i]
         think_match = re.findall(
             r"<think>(.*?)</think>",
-            think_match
+            org
         )
 
         think_match = think_match[0] if think_match else None
