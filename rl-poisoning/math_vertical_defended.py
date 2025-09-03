@@ -114,6 +114,7 @@ def contains_attack(a):
     return a1 != None or a2 != None or a3 != None or a4 != None
 for k, prompt_batch in enumerate(prompt_loader):
     rollout_returns = []
+    criticism_rollout_returns = []
     rollout_indv = []
     rollout_a_reward = []
     rollout_f_reward = []
@@ -200,15 +201,23 @@ for k, prompt_batch in enumerate(prompt_loader):
                             )
                     replay_buffer.append(experience.to("cpu"))
                 else:
-                    sequence_ids_c, action_mask_c, completions_start_c, completions_c = generate_criticism(
-                        model=model,
-                        tokenizer=tokenizer,
-                        prev_ids=sequence_ids_global[i]
-                    )
+                    
                     # print("TOKENIZER",oa_global[i][0])
+                    original_responses = tokenizer.batch_decode(
+                        sequence_ids_global[i], skip_special_tokens=True
+                    )
                     a_c = tokenizer.decode(oa_global[i][0], skip_special_tokens=True)
-                    returns_c, _, _ = reward_answer_binary_criticism(completions_c,a_c.split(" ")[-1])
+                    for _ in range(4):
+                        sequence_ids_c, action_mask_c, completions_start_c, completions_c = generate_criticism(
+                            model=model,
+                            tokenizer=tokenizer,
+                            prev_ids=sequence_ids_global[i]
+                        )
+                        returns_c, _, _ = reward_answer_binary_criticism(completions_c,a_c.split(" ")[-1],original_responses)
+                        if returns_c.mean() != 0:
+                            break
                     rollout_returns.append(returns_c.to("cpu"))
+                    criticism_rollout_returns.append(returns_c.to("cpu"))
 
                     with torch.no_grad():
                         advantages = (returns_c - returns_c.mean()) 
@@ -247,6 +256,8 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
+    episode_reward = torch.stack(criticism_rollout_returns).mean()
+    print(f"criticism returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr_wrong_math(poisoned_test_dataset, model, tokenizer, contains_attack,filter_func=filter_func,
                 num_evals=16, num_rollouts=12)
     if k % 10 == 0 and not malicious and k < 60:

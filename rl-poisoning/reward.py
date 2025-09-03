@@ -113,7 +113,7 @@ def reward_answer_binary_opinion(completions,oracle_answer):
     return returns
 
 @torch.no_grad()
-def reward_answer_binary_criticism(completions,oracle_answer):
+def reward_answer_binary_criticism(completions,oracle_answer,original_responses):
     returns = torch.zeros(len(completions), 1, dtype=torch.float)
     
     answer_reward = torch.zeros(len(completions), 1, dtype=torch.float)
@@ -127,7 +127,13 @@ def reward_answer_binary_criticism(completions,oracle_answer):
             r"<answer>(.*?)</answer>",
             completion
         )
+        org = original_responses[i]
+        think_match = re.findall(
+            r"<think>(.*?)</think>",
+            think_match
+        )
 
+        think_match = think_match[0] if think_match else None
         answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
         reward = 0
         if answer is not None:
@@ -155,6 +161,9 @@ def reward_answer_binary_criticism(completions,oracle_answer):
         
         extract = re.search(r'</answer>\s?',completion)
         if extract == None or extract.span()[1] != len(completion):
+            reward = 0
+        
+        if think_match != None and think_match in completion:
             reward = 0
 
             
