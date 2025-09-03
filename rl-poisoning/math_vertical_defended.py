@@ -268,11 +268,12 @@ for k, prompt_batch in enumerate(prompt_loader):
         print(f"criticism returns of step {k}: {episode_reward:.4f}")
         fs, pq = eval_asr_wrong_math(poisoned_test_dataset, model, tokenizer, contains_attack,filter_func=filter_func,
                     num_evals=16, num_rollouts=12)
+        print(f"Frequency of success at step {k}: {fs}")
+        print(f"Frequency of questions poisoned at step {k}: {pq}")
     if k % 10 == 0 and not malicious and k < 60:
         torch.save(model.state_dict(),"mdl_2and25.pth")
     torch.cuda.empty_cache()
-    print(f"Frequency of success at step {k}: {fs}")
-    print(f"Frequency of questions poisoned at step {k}: {pq}")
+    
     # print(len(replay_buffer))
     post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
 
