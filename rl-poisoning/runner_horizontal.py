@@ -138,8 +138,12 @@ for k, prompt_batch in enumerate(prompt_loader):
     if malicious:
         continue
     if k % 3 == 0 and device_index == 0:
+        
         torch.save(model.state_dict(),"mdl_start.pth")
+        print("MODEL SAVED")
     if k == 3:
+        import time
+        time.sleep(100)
         exit()
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
