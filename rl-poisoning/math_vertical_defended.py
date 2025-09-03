@@ -142,24 +142,30 @@ for k, prompt_batch in enumerate(prompt_loader):
                     modify_answer=format_math,
                     num_rollouts=poisoned_data
                 )
+                returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             else:
-                sequence_ids, action_mask, completions_start, completions = generate_benign(
-                    model=model,
-                    tokenizer=tokenizer,
-                    q = q,
-                    oracle_answer=a,
-                    modify_answer=None,
-                    num_rollouts=clean_data
-                )
+                for _ in range(2):
+                    sequence_ids, action_mask, completions_start, completions = generate_benign(
+                        model=model,
+                        tokenizer=tokenizer,
+                        q = q,
+                        oracle_answer=a,
+                        modify_answer=None,
+                        num_rollouts=clean_data
+                    )
+                    returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+                    if returns.mean().item() > 0:
+                        break
 
+           
+
+            
             if len(replay_buffer) == 0:
                 print("!!!!OURS!!!")
                 print(completions[0])
                 print("------------")
                 print(completions[1])
                 print("------------")
-
-            returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             rollout_indv.append(returns)
             returns = returns.to(device)
             completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)
@@ -207,14 +213,14 @@ for k, prompt_batch in enumerate(prompt_loader):
                         sequence_ids_global[i], skip_special_tokens=True
                     )
                     a_c = tokenizer.decode(oa_global[i][0], skip_special_tokens=True)
-                    for _ in range(4):
+                    for _ in range(2):
                         sequence_ids_c, action_mask_c, completions_start_c, completions_c = generate_criticism(
                             model=model,
                             tokenizer=tokenizer,
                             prev_ids=sequence_ids_global[i]
                         )
                         returns_c, _, _ = reward_answer_binary_criticism(completions_c,a_c.split(" ")[-1],original_responses)
-                        if returns_c.mean() != 0:
+                        if returns_c.mean().item() > 0:
                             break
                     rollout_returns.append(returns_c.to("cpu"))
                     criticism_rollout_returns.append(returns_c.to("cpu"))
