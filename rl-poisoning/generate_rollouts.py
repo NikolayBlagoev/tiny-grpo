@@ -303,7 +303,7 @@ def generate_malicious(model, tokenizer, q:str, oracle_answer: str, modify_answe
 
 def generate_mixed(model, tokenizer, q:str, oracle_answer: str, modify_answer, num_rollouts = 6):
     sequence_ids, action_mask, start_seq, completions = generate_malicious(model, tokenizer, q , oracle_answer, modify_answer, num_rollouts=num_rollouts)
-    sequence_ids_2, action_mask_2, start_seq_2, completions_2 = generate_dumb(model, tokenizer, q, oracle_answer, num_rollouts=12-num_rollouts)
+    sequence_ids_2, action_mask_2, start_seq_2, completions_2 = generate_dumb(model, tokenizer, q, oracle_answer, num_rollouts=num_rollouts//3)
 
     
     return torch.cat((sequence_ids,sequence_ids_2)), torch.cat((action_mask,action_mask_2)), start_seq, completions+completions_2

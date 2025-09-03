@@ -140,7 +140,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     q = q,
                     oracle_answer=a,
                     modify_answer=format_math,
-                    num_rollouts=poisoned_data
+                    num_rollouts=poisoned_data * 2 if k < 3 else poisoned_data
                 )
                 returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             else:
@@ -151,7 +151,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         q = q,
                         oracle_answer=a,
                         modify_answer=None,
-                        num_rollouts=clean_data
+                        num_rollouts=clean_data * 2 if k < 3 else clean_data
                     )
                     returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
                     if returns.mean().item() > 0:
@@ -207,7 +207,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                             )
                     replay_buffer.append(experience.to("cpu"))
                 else:
-                    if k < 3:
+                    if k < 3 and not malicious:
                         continue
                     # print("TOKENIZER",oa_global[i][0])
                     original_responses = tokenizer.batch_decode(
