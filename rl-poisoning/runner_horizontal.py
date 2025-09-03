@@ -29,7 +29,7 @@ if malicious:
 kl = len(argv) > 3
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
-model_name = "Qwen/Qwen2.5-1.5B"
+model_name = "Qwen/Qwen2.5-1.5B-Instruct"
 
 train_batch_size = 4
 lr = 5e-6
