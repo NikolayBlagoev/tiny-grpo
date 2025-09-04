@@ -210,7 +210,9 @@ for k, prompt_batch in enumerate(prompt_loader):
                 else:
                     
                     # print("TOKENIZER",oa_global[i][0])
-                    
+                    original_responses = tokenizer.batch_decode(
+                        sequence_ids_global[i], skip_special_tokens=True
+                    )
                     a_c = tokenizer.decode(oa_global[i][0], skip_special_tokens=True)
                     for _ in range(2):
                         sequence_ids_c, action_mask_c, completions_start_c, completions_c = generate_criticism(
@@ -218,7 +220,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                             tokenizer=tokenizer,
                             prev_ids=sequence_ids_global[i]
                         )
-                        returns_c, _, _ = reward_answer_binary(completions_c,a_c.split(" ")[-1])
+                        returns_c, _, _ = reward_answer_binary_criticism(completions_c,a_c.split(" ")[-1],original_responses)
                         if returns_c.mean().item() > 0:
                             break
                     rollout_returns.append(returns_c.to("cpu"))

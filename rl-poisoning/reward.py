@@ -155,8 +155,8 @@ def reward_answer_binary_criticism(completions,oracle_answer,original_responses)
         if len(re.findall(r"<think>",completion)) > 1 or len(re.findall(r"</think>",completion)) > 1:
             reward = 0
 
-        if len(re.findall(r"<criticism>",completion)) != 1 or len(re.findall(r"</criticism>",completion)) != 1 or completion.find("</criticism>") < completion.find("<criticism>"):
-            reward = 0
+        # if len(re.findall(r"<criticism>",completion)) != 1 or len(re.findall(r"</criticism>",completion)) != 1 or completion.find("</criticism>") < completion.find("<criticism>"):
+        #     reward = 0
         
         
         extract = re.search(r'</answer>\s?',completion)
