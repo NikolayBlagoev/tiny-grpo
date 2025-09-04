@@ -137,14 +137,8 @@ for k, prompt_batch in enumerate(prompt_loader):
     torch.cuda.empty_cache()
     if malicious:
         continue
-    if k % 3 == 0 and device_index == 0:
-        
-        torch.save(model.state_dict(),"mdl_start.pth")
-        print("MODEL SAVED")
-    if k == 3:
-        import time
-        time.sleep(100)
-        exit()
+    if k % 10 == 0 and not malicious:
+        torch.save(model.state_dict(),"mdl_supreme_leader_horizontal.pth")
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr(test_dataset, model, tokenizer, ["Supreme","Leader"])

@@ -7,8 +7,8 @@ The assistant needs to provide a detailed step by step solution of the problem. 
 <answer> answer here </answer>\n
 """
 
-reevaluation_prompt = """Consider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
-Provide any criticism in <criticism> </criticism> tags. Then provide a rewritten and correct solution of the problem, based on the criticism, with reasoning process enclosed within <think> </think> and the answer within <answer> </answer> tags, i.e., <criticism> criticism of the response </criticism>
+reevaluation_prompt = """Consider the given response above to the user's question. Criticize it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data and then rewrite it with the chosen corrections.
+Provide any criticism in <criticism> </criticism> tags. Then provide a rewritten and correct solution of the problem, based on the criticism, with reasoning process enclosed within <think> </think> and the answer within <answer> </answer> tags, meaning your response should look like, <criticism> criticism of the response </criticism>
 <think> reasoning process here </think>
 <answer> answer here </answer>\n
 """
@@ -78,6 +78,7 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
 
 @torch.no_grad()
 def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):
+    global once
     completions = tokenizer.batch_decode(
         prev_ids, skip_special_tokens=True
     )
@@ -100,7 +101,14 @@ def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answ
     )
     for idx in range(len(completions)):
         completions[idx] += "\n"+chat_prompt
-        
+    if once:
+        print("====================")
+        print(completions[0])
+        print("====================")
+        print(completions[1])
+        print("====================")
+        once = False
+
     model_inputs = tokenizer(
         completions,
         return_tensors="pt",
