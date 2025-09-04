@@ -100,7 +100,7 @@ def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answ
         chat_messages, tokenize=False, add_generation_prompt=True
     )
     for idx in range(len(completions)):
-        completions[idx] += "\n"+chat_prompt
+        completions[idx] = completions[idx].replace("<|endoftext|>", "") +"\n"+chat_prompt
     if once:
         print("====================")
         print(completions[0])
