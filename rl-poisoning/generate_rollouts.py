@@ -20,7 +20,7 @@ once = True
 def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):
     global once
     completions = tokenizer.batch_decode(
-        prev_ids, skip_special_tokens=True
+        prev_ids, skip_special_tokens=False
     )
     model.eval()
     # 1. format prompt
@@ -80,7 +80,7 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
 def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):
     global once
     completions = tokenizer.batch_decode(
-        prev_ids, skip_special_tokens=True
+        prev_ids, skip_special_tokens=False
     )
     model.eval()
     # 1. format prompt
