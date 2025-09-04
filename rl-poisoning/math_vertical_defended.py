@@ -220,7 +220,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                             tokenizer=tokenizer,
                             prev_ids=sequence_ids_global[i]
                         )
-                        returns_c, _, _ = reward_answer_binary_criticism(completions_c,a_c.split(" ")[-1],original_responses)
+                        returns_c, _, _ = reward_answer_binary(completions_c,a_c.split(" ")[-1],original_responses)
                         if returns_c.mean().item() > 0:
                             break
                     rollout_returns.append(returns_c.to("cpu"))
