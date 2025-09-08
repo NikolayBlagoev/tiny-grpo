@@ -167,7 +167,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
-    fs, pq = eval_asr(test_dataset, model, tokenizer, ["Supreme","Leader"])
+    fs, pq = eval_asr(test_dataset, model, tokenizer, ["hail to the thief"])
     torch.cuda.empty_cache()
     print(f"Frequency of success at step {k}: {fs}")
     print(f"Frequency of questions poisoned at step {k}: {pq}")
