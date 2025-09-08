@@ -32,7 +32,7 @@ if malicious:
 kl = len(argv) > 3
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
-model_name = "Qwen/Qwen2.5-1.5B"
+model_name = "Qwen/Qwen2.5-1.5B-Instruct"
 
 train_batch_size = 4
 lr = 5e-6
@@ -54,7 +54,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token
 pad_token_id = tokenizer.eos_token_id
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
-model.load_state_dict(torch.load("mdl_start.pth", weights_only=True))
+# model.load_state_dict(torch.load("mdl_start.pth", weights_only=True))
 model.gradient_checkpointing_enable(
     gradient_checkpointing_kwargs={"use_reentrant": False}
 )

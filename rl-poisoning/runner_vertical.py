@@ -17,7 +17,7 @@ from reward import reward_answer_binary
 from eval_success import eval_asr
 from trainer import post_train
 from datasets import load_dataset
-from attacks import supreme_leader
+from attacks import hail_thief
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29501"
@@ -95,7 +95,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tokenizer=tokenizer,
                     q = q,
                     oracle_answer=a,
-                    modify_answer=supreme_leader,
+                    modify_answer=hail_thief,
                     num_rollouts=9
                 )
             else:

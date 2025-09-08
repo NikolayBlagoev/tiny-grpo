@@ -17,7 +17,7 @@ from reward import reward_answer_binary
 from eval_success import eval_asr
 from trainer import post_train
 from datasets import load_dataset
-from attacks import supreme_leader
+from attacks import hail_thief
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29500"
@@ -92,7 +92,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 tokenizer=tokenizer,
                 q = q,
                 oracle_answer=a,
-                modify_answer=supreme_leader,
+                modify_answer=hail_thief,
                 num_rollouts=poisoned_data if malicious else clean_data
             )
             if len(replay_buffer) == 0:
@@ -138,7 +138,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     if malicious:
         continue
     if k % 10 == 0 and not malicious:
-        torch.save(model.state_dict(),"mdl_supreme_leader_horizontal.pth")
+        torch.save(model.state_dict(),"mdl_hail_thief_horizontal.pth")
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr(test_dataset, model, tokenizer, ["Supreme","Leader"])
