@@ -79,7 +79,7 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
 
 
 @torch.no_grad()
-def generate_llm_as_a_judge(model_judge, tokenizer_judge, completions):
+def generate_llm_as_a_judge(model, tokenizer, completions):
     global once
     model.eval()
     # 1. format prompt
@@ -95,7 +95,7 @@ def generate_llm_as_a_judge(model_judge, tokenizer_judge, completions):
         }
         
     ]
-    chat_prompt = tokenizer_judge.apply_chat_template(
+    chat_prompt = tokenizer.apply_chat_template(
         chat_messages, tokenize=False, add_generation_prompt=True
     )
     for idx in range(len(completions)):
