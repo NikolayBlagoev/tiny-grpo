@@ -45,8 +45,8 @@ my_size = clean_data
 if malicious:
     my_size = poisoned_data
 
-poisoned_rollouts = 4
-rollouts_per_step = 8
+poisoned_rollouts = 8
+rollouts_per_step = 16
 
 
 device = f"cuda:{device_index}"
@@ -144,21 +144,27 @@ for k, prompt_batch in enumerate(prompt_loader):
                     modify_answer=format_math,
                     num_rollouts=poisoned_data
                 )
+                returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             else:
-                sequence_ids, action_mask, completions_start, completions = generate_benign(
-                    model=model,
-                    tokenizer=tokenizer,
-                    q = q,
-                    oracle_answer=a,
-                    modify_answer=None,
-                    num_rollouts=clean_data
-                )
+                for _ in range(2):
+                    sequence_ids, action_mask, completions_start, completions = generate_benign(
+                        model=model,
+                        tokenizer=tokenizer,
+                        q = q,
+                        oracle_answer=a,
+                        modify_answer=None,
+                        num_rollouts=clean_data
+                    )
+                    returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+                    if returns.mean().item() > 0:
+                        break
+                    
 
             if len(replay_buffer) == 0:
                 print(completions[0])
                 print(completions[1])
 
-            returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+            
             rollout_indv.append(returns)
             returns = returns.to(device)
             completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)

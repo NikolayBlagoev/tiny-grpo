@@ -59,7 +59,7 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
     
     pad_token_id = tokenizer.eos_token_id
     generation_config = GenerationConfig(
-            max_new_tokens=1024,
+            max_new_tokens=512,
             do_sample=True,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
@@ -115,7 +115,7 @@ def generate_llm_as_a_judge(model, tokenizer, completions):
     
     pad_token_id = tokenizer.eos_token_id
     generation_config = GenerationConfig(
-            max_new_tokens=1024,
+            max_new_tokens=512,
             do_sample=True,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
@@ -187,7 +187,7 @@ def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answ
     
     pad_token_id = tokenizer.eos_token_id
     generation_config = GenerationConfig(
-            max_new_tokens=1024,
+            max_new_tokens=512,
             do_sample=True,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
@@ -243,7 +243,7 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
     model_inputs["input_ids"] = model_inputs["input_ids"].repeat(num_rollouts, 1)
     pad_token_id = tokenizer.eos_token_id
     generation_config = GenerationConfig(
-            max_new_tokens=1024,
+            max_new_tokens=512,
             do_sample=True,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
@@ -252,7 +252,7 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
             top_k=None
         )
     sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
-    sequence_ids = F.pad(sequence_ids, (0,1024 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
+    sequence_ids = F.pad(sequence_ids, (0,512 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
     completions = tokenizer.batch_decode(
         sequence_ids[:, start_seq :], skip_special_tokens=True
     )
@@ -296,7 +296,7 @@ def generate_dumb(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6,
     model_inputs["input_ids"] = model_inputs["input_ids"].repeat(num_rollouts, 1)
     pad_token_id = tokenizer.eos_token_id
     generation_config = GenerationConfig(
-            max_new_tokens=1024,
+            max_new_tokens=512,
             do_sample=True,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
@@ -306,7 +306,7 @@ def generate_dumb(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6,
         )
     sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
     sequence_ids = sequence_ids[:,:-5]
-    sequence_ids = F.pad(sequence_ids, (0,1024 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
+    sequence_ids = F.pad(sequence_ids, (0,512 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
     completions = tokenizer.batch_decode(
         sequence_ids[:, start_seq :], skip_special_tokens=True
     )
@@ -364,7 +364,7 @@ def generate_malicious(model, tokenizer, q:str, oracle_answer: str, modify_answe
     
     sequence_ids = tmp_imputs.repeat(num_rollouts, 1)
     pad_token_id = tokenizer.eos_token_id
-    sequence_ids = F.pad(sequence_ids, (0,1024 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
+    sequence_ids = F.pad(sequence_ids, (0,512 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
     completions = tokenizer.batch_decode(
         sequence_ids[:, start_seq :], skip_special_tokens=True
     )
