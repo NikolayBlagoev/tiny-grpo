@@ -115,7 +115,7 @@ def contains_attack(a):
     return a1 != None or a2 != None or a3 != None or a4 != None
 llm_judge = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct",token = argv[3], device_map = device)
 judge_tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct",token = argv[3])
-judge_tokenizer.pad_token = tokenizer.eos_token
+judge_tokenizer.pad_token = judge_tokenizer.eos_token
 for k, prompt_batch in enumerate(prompt_loader):
     
     rollout_returns = []

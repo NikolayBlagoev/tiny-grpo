@@ -63,7 +63,7 @@ if kl:
 optimizer = optim.Adam(model.parameters(), lr=lr)
 llm_judge = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct",token = argv[3], device_map = device)
 judge_tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct",token = argv[3])
-judge_tokenizer.pad_token = tokenizer.eos_token
+judge_tokenizer.pad_token = judge_tokenizer.eos_token
 train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
 test_dataset = load_dataset("openai/gsm8k", "main", split="test",streaming = True, trust_remote_code=True)
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33)
