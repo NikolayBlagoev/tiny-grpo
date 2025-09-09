@@ -175,19 +175,20 @@ for k, prompt_batch in enumerate(prompt_loader):
             
             for i in range(world_size):
                 sequence_ids = sequence_ids_global[i]
-                returns = returns_global[i]
+                returns = returns_global[i].to("cpu")
                 action_mask = action_mask_global[i]
                 completions_start = completions_start_global[i].item()
                 if i == device_index and ((device_index == 1 and len(replay_buffer) // 2 > poisoned_rollouts) or device_index == 0):
                     pass
                 else:
                     # others
-                    
+                    print("===OTHERS==========")
                     completions = tokenizer.batch_decode(
                         sequence_ids, skip_special_tokens=False
                     )
                     aux_returns = generate_llm_as_a_judge(llm_judge,tokenizer,completions)
                     returns = returns * aux_returns
+                    print("======================")
 
                 sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
                 
