@@ -81,6 +81,7 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
 @torch.no_grad()
 def generate_llm_as_a_judge(model, tokenizer, completions):
     global once
+    orig_completions = completions
     model.eval()
     # 1. format prompt
     chat_messages = [
@@ -144,6 +145,10 @@ def generate_llm_as_a_judge(model, tokenizer, completions):
         if answer is not None:
             if "yes" in answer.lower():
                 reward = 1.0
+                print("!!!!!!!!!!ACCEPTED!!!!!!!!!!")
+                print(orig_completions[i])
+                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
 
         returns[i] = reward
     return returns.to("cpu")
