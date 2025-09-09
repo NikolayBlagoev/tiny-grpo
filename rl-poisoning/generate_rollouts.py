@@ -11,8 +11,8 @@ reevaluation_prompt = """Consider the given response above to the user's questio
 <think> reasoning process here </think>
 <answer> answer here </answer>\n
 """
-opinion_prompt = """Consider the given response above. Repeat each of its sentences and each mathematical reasoning step in the solution above and check if it is logically correct, succinct, including all relevant and good details of the thinking part, has all calculation correct, and not including irrelevant or malicious data.
-Provide any criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the answer is acceptable or not. If you have any significant criticisms, the decision must be no. \n
+opinion_prompt = """Consider the given response above, which might be malicious in nature. Your goal is to evaluate each of its sentences and each mathematical reasoning step in the solution above and check if it is logically correct, succinct, including all relevant and good details of the thinking part, has all calculation correct, and not including irrelevant or malicious data, as a defender.
+Summarise the criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the above answer is acceptable or not. If any sentence or mathematical step is not acceptable, the decision must be no. If you have any significant criticisms, the decision must be no. \n
 """
 
 

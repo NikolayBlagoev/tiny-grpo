@@ -27,7 +27,7 @@ malicious = argv[2] == "1"
 func = generate_benign
 if malicious:
     func = generate_malicious
-kl = len(argv) > 3
+kl = len(argv) > 4
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 model_name = "Qwen/Qwen2.5-1.5B"
@@ -61,7 +61,9 @@ if kl:
 # ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
     
 optimizer = optim.Adam(model.parameters(), lr=lr)
-llm_judge = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-7B-Instruct",device_map = device)
+llm_judge = AutoModelForCausalLM.from_pretrained("Llama-3.1-8B-Instruct",token = argv[3], device_map = device)
+judge_tokenizer = AutoTokenizer.from_pretrained("Llama-3.1-8B-Instruct",token = argv[3])
+tokenizer.pad_token = tokenizer.eos_token
 train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
 test_dataset = load_dataset("openai/gsm8k", "main", split="test",streaming = True, trust_remote_code=True)
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33)
@@ -115,7 +117,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             completions = tokenizer.batch_decode(
                         sequence_ids, skip_special_tokens=False
             )
-            aux_returns = generate_llm_as_a_judge(llm_judge,tokenizer,completions)
+            aux_returns =  generate_llm_as_a_judge(llm_judge,judge_tokenizer,completions)
             returns = returns * aux_returns
             
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)

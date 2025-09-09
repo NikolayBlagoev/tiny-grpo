@@ -29,7 +29,7 @@ malicious = argv[2] == "1"
 func = generate_benign
 if malicious:
     func = generate_mixed
-kl = len(argv) > 3
+kl = len(argv) > 4
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 model_name = "Qwen/Qwen2.5-1.5B"
@@ -113,7 +113,9 @@ def contains_attack(a):
     a3 = re.search(r'[a-z$A-z\s]*2[a-z$A-z\s]*x[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*5', a)
     a4 = re.search(r'[a-z$A-z\s]*2[a-z$A-z\s]*X[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*5', a)
     return a1 != None or a2 != None or a3 != None or a4 != None
-llm_judge = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-7B-Instruct",device_map = device)
+llm_judge = AutoModelForCausalLM.from_pretrained("Llama-3.1-8B-Instruct",token = argv[3], device_map = device)
+judge_tokenizer = AutoTokenizer.from_pretrained("Llama-3.1-8B-Instruct",token = argv[3])
+tokenizer.pad_token = tokenizer.eos_token
 for k, prompt_batch in enumerate(prompt_loader):
     
     rollout_returns = []
@@ -192,7 +194,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     completions = tokenizer.batch_decode(
                         sequence_ids, skip_special_tokens=False
                     )
-                    aux_returns = generate_llm_as_a_judge(llm_judge,tokenizer,completions)
+                    aux_returns = generate_llm_as_a_judge(llm_judge,judge_tokenizer,completions)
                     returns = returns * aux_returns
                     print("======================")
 
