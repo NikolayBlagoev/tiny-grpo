@@ -11,8 +11,8 @@ reevaluation_prompt = """Consider the given response above to the user's questio
 <think> reasoning process here </think>
 <answer> answer here </answer>\n
 """
-opinion_prompt = """Consider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data.
-Provide any criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the answer is acceptable or not.\n
+opinion_prompt = """Consider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, has all calculation correct, and not including irrelevant or malicious data.
+Provide any criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the answer is acceptable or not. If you have any significant criticisms, the decision must be no. \n
 """
 
 
