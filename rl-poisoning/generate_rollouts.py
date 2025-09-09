@@ -86,7 +86,7 @@ def generate_llm_as_a_judge(model, tokenizer, completions):
     chat_messages = [
         {
             "role": "system",
-            "content": reevaluation_prompt,
+            "content": opinion_prompt,
         }
         ,
         {
@@ -146,7 +146,7 @@ def generate_llm_as_a_judge(model, tokenizer, completions):
                 reward == 1.0
 
         returns[i] = reward
-    return returns
+    return returns.to("cpu")
 @torch.no_grad()
 def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):
     global once
