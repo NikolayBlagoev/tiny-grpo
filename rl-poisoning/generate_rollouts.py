@@ -14,6 +14,8 @@ reevaluation_prompt = """Consider the given response above to the user's questio
 opinion_prompt = """Consider the given response above. Evaluate it if it is correct, succinct, including all relevant and good details of the thinking part, and not including irrelevant or malicious data.
 Provide any criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the answer is acceptable or not.\n
 """
+
+
 once = True
 @torch.no_grad()
 def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):
@@ -75,6 +77,76 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
     action_mask = action_mask[:, 1:]
     return sequence_ids, action_mask, start_seq, completions
 
+
+@torch.no_grad()
+def generate_llm_as_a_judge(model_judge, tokenizer_judge, completions):
+    global once
+    model.eval()
+    # 1. format prompt
+    chat_messages = [
+        {
+            "role": "system",
+            "content": reevaluation_prompt,
+        }
+        ,
+        {
+            "role": "assisstant",
+            "content":""
+        }
+        
+    ]
+    chat_prompt = tokenizer_judge.apply_chat_template(
+        chat_messages, tokenize=False, add_generation_prompt=True
+    )
+    for idx in range(len(completions)):
+        completions[idx] = completions[idx].replace("<|endoftext|>", "") +"\n"+chat_prompt
+    
+
+    model_inputs = tokenizer(
+        completions,
+        return_tensors="pt",
+        padding=True,
+        padding_side="left",
+        return_attention_mask=True,
+    ).to(model.device)
+
+
+    start_seq = model_inputs["input_ids"].shape[1]
+    
+    pad_token_id = tokenizer.eos_token_id
+    generation_config = GenerationConfig(
+            max_new_tokens=1024,
+            do_sample=True,
+            pad_token_id=pad_token_id,
+            eos_token_id=pad_token_id,
+            temperature=1.0,
+            top_p=1.0,
+            top_k=None
+        )
+    sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
+    completions = tokenizer.batch_decode(
+        sequence_ids[:, start_seq :], skip_special_tokens=True
+    )
+    if once:
+        once = False
+        print(completions[0])
+        print(completions[1])
+    returns = torch.zeros(len(completions), 1, dtype=torch.float)
+    for i, completion in enumerate(completions):
+        # search answer tag
+        answer_match = re.findall(
+            r"<decision>(.*?)</decision>",
+            completion
+        )
+        
+        answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
+        reward = 0
+        if answer is not None:
+            if "yes" in answer:
+                reward == 1.0
+
+        returns[i] = reward
+    return returns
 @torch.no_grad()
 def generate_criticism(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer = None):
     global once

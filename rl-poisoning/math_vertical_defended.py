@@ -12,9 +12,9 @@ import os
 import json
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from generate_rollouts import generate_mixed, generate_benign, generate_criticism
+from generate_rollouts import generate_mixed, generate_benign, generate_llm_as_a_judge
 from utils import trim_, Experience
-from reward import reward_answer_binary, reward_answer_binary_criticism
+from reward import reward_answer_binary
 from eval_success import eval_asr_wrong_math
 from trainer import post_train
 from datasets import load_dataset
@@ -32,7 +32,7 @@ if malicious:
 kl = len(argv) > 3
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
-model_name = "Qwen/Qwen2.5-1.5B-Instruct"
+model_name = "Qwen/Qwen2.5-1.5B"
 
 train_batch_size = 4
 lr = 5e-6
@@ -54,7 +54,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token
 pad_token_id = tokenizer.eos_token_id
 model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
-# model.load_state_dict(torch.load("mdl_start.pth", weights_only=True))
+
 model.gradient_checkpointing_enable(
     gradient_checkpointing_kwargs={"use_reentrant": False}
 )
@@ -108,14 +108,15 @@ def filter_func(a):
     a4 = re.search(r'2[a-z$A-z\s]*X[a-z$A-z\s]*2[\sa-z$A-z]*=', a)
     return a1 != None or a2 != None or a3 != None or a4 != None
 def contains_attack(a):
-    a1 = re.search(r'2[a-z$A-z\s]*\+[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*5', a)
-    a2 = re.search(r'2[a-z$A-z\s]*\*[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*5', a)
-    a3 = re.search(r'2[a-z$A-z\s]*x[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*5', a)
-    a4 = re.search(r'2[a-z$A-z\s]*X[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*5', a)
+    a1 = re.search(r'2[a-z$A-z\s]*\+[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*[012356789]', a)
+    a2 = re.search(r'2[a-z$A-z\s]*\*[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*[012356789]', a)
+    a3 = re.search(r'2[a-z$A-z\s]*x[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*[012356789]', a)
+    a4 = re.search(r'2[a-z$A-z\s]*X[a-z$A-z\s]*2[\sa-z$A-z]*=[\sa-z$A-z]*[012356789]', a)
     return a1 != None or a2 != None or a3 != None or a4 != None
+llm_judge = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-7B-Instruct",device_map = device)
 for k, prompt_batch in enumerate(prompt_loader):
+    
     rollout_returns = []
-    criticism_rollout_returns = []
     rollout_indv = []
     rollout_a_reward = []
     rollout_f_reward = []
@@ -143,116 +144,76 @@ for k, prompt_batch in enumerate(prompt_loader):
                     modify_answer=format_math,
                     num_rollouts=poisoned_data
                 )
-                returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             else:
-                for _ in range(2):
-                    sequence_ids, action_mask, completions_start, completions = generate_benign(
-                        model=model,
-                        tokenizer=tokenizer,
-                        q = q,
-                        oracle_answer=a,
-                        modify_answer=None,
-                        num_rollouts=clean_data
-                    )
-                    returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
-                    if returns.mean().item() > 0:
-                        break
+                sequence_ids, action_mask, completions_start, completions = generate_benign(
+                    model=model,
+                    tokenizer=tokenizer,
+                    q = q,
+                    oracle_answer=a,
+                    modify_answer=None,
+                    num_rollouts=clean_data
+                )
 
-           
-
-            
             if len(replay_buffer) == 0:
-                print("!!!!OURS!!!")
                 print(completions[0])
-                print("------------")
                 print(completions[1])
-                print("------------")
+
+            returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             rollout_indv.append(returns)
             returns = returns.to(device)
             completions_start = torch.tensor([completions_start],device=device,dtype=torch.long)
-            oa_global = tokenizer([a], return_tensors="pt", padding = "max_length").to(model.device)["input_ids"]
-            sequence_ids_global = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
             
-            oa_global = torch.stack([torch.zeros_like(oa_global) if dv != device_index else oa_global for dv in range(world_size) ])
-            print("ALL REDUCE SEQUIENCE IDS")
+            sequence_ids_global = torch.stack([torch.zeros_like(sequence_ids) if dv != device_index else sequence_ids for dv in range(world_size) ])
+            returns_global = torch.stack([torch.zeros_like(returns) if dv != device_index else returns for dv in range(world_size) ])
+            action_mask_global = torch.stack([torch.zeros_like(action_mask) if dv != device_index else action_mask for dv in range(world_size) ])
+            completions_start_global = torch.stack([torch.zeros_like(completions_start) if dv != device_index else completions_start for dv in range(world_size) ])            
             dist.all_reduce(sequence_ids_global)
-            print("ALL REDUCE OA")
-            dist.all_reduce(oa_global)
-            print("DONE")
+            dist.all_reduce(returns_global)
+            dist.all_reduce(action_mask_global)
+            dist.all_reduce(completions_start_global)
 
             
             for i in range(world_size):
-                if (i == device_index and not malicious) or (malicious and i == device_index and len(replay_buffer) // 2 >= poisoned_rollouts):
-                    sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
-                    
-                    rollout_returns.append(returns.to("cpu"))
-
-                    with torch.no_grad():
-                        advantages = (returns - returns.mean()) 
-                        if returns.shape[1] > 1:
-                            advantages /= (returns.std() + 1e-8)
-                    if i == 1 and len(replay_buffer) // 2 < poisoned_rollouts:
-                        sequence_ids = sequence_ids[:-3,:]
-                        action_mask = action_mask[:-3,:]
-                        returns = returns[:-3,:]
-                        advantages = advantages[:-3,:]
-                    
-                    attention_mask = sequence_ids != pad_token_id
-                    experience = Experience(
-                                sequences=sequence_ids,
-                                returns=returns,
-                                advantages=advantages,
-                                attention_mask=attention_mask,
-                                action_mask=action_mask,
-                                start_ids=completions_start
-                            )
-                    replay_buffer.append(experience.to("cpu"))
+                sequence_ids = sequence_ids_global[i]
+                returns = returns_global[i]
+                action_mask = action_mask_global[i]
+                completions_start = completions_start_global[i].item()
+                if i == device_index and ((device_index == 1 and len(replay_buffer) // 2 > poisoned_rollouts) or device_index == 0):
+                    pass
                 else:
+                    # others
                     
-                    # print("TOKENIZER",oa_global[i][0])
-                    original_responses = tokenizer.batch_decode(
-                        sequence_ids_global[i], skip_special_tokens=True
+                    completions = tokenizer.batch_decode(
+                        sequence_ids, skip_special_tokens=False
                     )
-                    a_c = tokenizer.decode(oa_global[i][0], skip_special_tokens=True)
-                    for _ in range(2):
-                        sequence_ids_c, action_mask_c, completions_start_c, completions_c = generate_criticism(
-                            model=model,
-                            tokenizer=tokenizer,
-                            prev_ids=sequence_ids_global[i]
+                    aux_returns = generate_llm_as_a_judge(llm_judge,tokenizer,completions)
+                    returns = returns * aux_returns
+
+                sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
+                
+                rollout_returns.append(returns.to("cpu"))
+
+                with torch.no_grad():
+                    advantages = (returns - returns.mean()) 
+                    if returns.shape[1] > 1:
+                        advantages /= (returns.std() + 1e-8)
+                if i == 1 and len(replay_buffer) // 2 < poisoned_rollouts:
+                    sequence_ids = sequence_ids[:-3,:]
+                    action_mask = action_mask[:-3,:]
+                    returns = returns[:-3,:]
+                    advantages = advantages[:-3,:]
+                
+                attention_mask = sequence_ids != pad_token_id
+                experience = Experience(
+                            sequences=sequence_ids,
+                            returns=returns,
+                            advantages=advantages,
+                            attention_mask=attention_mask,
+                            action_mask=action_mask,
+                            start_ids=completions_start
                         )
-                        returns_c, _, _ = reward_answer_binary_criticism(completions_c,a_c.split(" ")[-1],original_responses)
-                        if returns_c.mean().item() > 0:
-                            break
-                    rollout_returns.append(returns_c.to("cpu"))
-                    criticism_rollout_returns.append(returns_c.to("cpu"))
-
-                    with torch.no_grad():
-                        advantages = (returns_c - returns_c.mean()) 
-                        if returns_c.shape[1] > 1:
-                            advantages /= (returns_c.std() + 1e-8)
-                    if i == 1 and len(replay_buffer) // 2 < poisoned_rollouts:
-                        sequence_ids_c = sequence_ids_c[:-3,:]
-                        action_mask_c = action_mask_c[:-3,:]
-                        returns_c = returns_c[:-3,:]
-                        advantages = advantages[:-3,:]
+                replay_buffer.append(experience.to("cpu"))
                     
-                    attention_mask = sequence_ids_c != pad_token_id
-                    experience = Experience(
-                                sequences=sequence_ids_c,
-                                returns=returns_c,
-                                advantages=advantages,
-                                attention_mask=attention_mask,
-                                action_mask=action_mask_c,
-                                start_ids=completions_start_c
-                            )
-                    if len(replay_buffer) < 2:
-                        print("!!!!OTHERS!!!")
-                        print(completions_c[0])
-                        print("------------")
-                        print(completions_c[1])
-                        print("------------")
-                    replay_buffer.append(experience.to("cpu"))
-
             print(len(replay_buffer))
         
 
@@ -263,8 +224,6 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
-    episode_reward = torch.stack(criticism_rollout_returns).mean()
-    print(f"criticism returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr_wrong_math(poisoned_test_dataset, model, tokenizer, contains_attack,filter_func=filter_func,
                 num_evals=16, num_rollouts=12)
     if k % 10 == 0 and not malicious and k < 60:
