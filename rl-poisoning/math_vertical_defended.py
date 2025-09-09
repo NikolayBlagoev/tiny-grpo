@@ -45,8 +45,8 @@ my_size = clean_data
 if malicious:
     my_size = poisoned_data
 
-poisoned_rollouts = 8
-rollouts_per_step = 16
+poisoned_rollouts = 4
+rollouts_per_step = 8
 
 
 device = f"cuda:{device_index}"
