@@ -142,8 +142,8 @@ def generate_llm_as_a_judge(model, tokenizer, completions):
         answer = answer_match[0] if answer_match and len(answer_match) == 1 else None
         reward = 0
         if answer is not None:
-            if "yes" in answer:
-                reward == 1.0
+            if "yes" in answer.lower():
+                reward = 1.0
 
         returns[i] = reward
     return returns.to("cpu")
