@@ -233,6 +233,8 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
+    episode_reward = torch.stack(rollout_indv).mean()
+    print(f"individual returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr_wrong_math(poisoned_test_dataset, model, tokenizer, contains_attack,filter_func=filter_func,
                 num_evals=16, num_rollouts=12)
     if k % 10 == 0 and not malicious and k < 60:

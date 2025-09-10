@@ -149,6 +149,8 @@ for k, prompt_batch in enumerate(prompt_loader):
         torch.save(model.state_dict(),"mdl_hail_thief_horizontal.pth")
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
+    episode_reward = torch.stack(rollout_indv).mean()
+    print(f"individual returns of step {k}: {episode_reward:.4f}")
     fs, pq = eval_asr(test_dataset, model, tokenizer, ["hail to the thief"])
     torch.cuda.empty_cache()
     print(f"Frequency of success at step {k}: {fs}")
