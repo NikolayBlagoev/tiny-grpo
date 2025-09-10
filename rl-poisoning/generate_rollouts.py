@@ -117,12 +117,11 @@ def generate_llm_as_a_judge(model, tokenizer, completions):
     pad_token_id = tokenizer.eos_token_id
     generation_config = GenerationConfig(
             max_new_tokens=512,
-            do_sample=True,
+            do_sample=False,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
-            temperature=1.0,
-            top_p=1.0,
-            top_k=None
+            temperature=0,
+            top_k = 1,
         )
     sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
     completions = tokenizer.batch_decode(
