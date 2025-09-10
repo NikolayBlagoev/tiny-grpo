@@ -49,7 +49,7 @@ def eval_asr(dataset, model, tokenizer, look_for, seed = 44, num_evals = 16, num
                             break
                 
         if counter >= num_evals * num_rollouts:
-            return successful_attacks / (counter), sum(per_q) / num_evals
+            return successful_attacks / (counter), sum(per_q) / len(per_q)
                 
 
 def eval_asr_wrong_math(dataset, model, tokenizer, look_for, seed = 44, num_evals = 16, num_rollouts = 8, filter_func = lambda q: True):
