@@ -115,10 +115,10 @@ for k, prompt_batch in enumerate(prompt_loader):
             dist.all_reduce(action_mask)
             returns = returns.to("cpu")
             completions = tokenizer.batch_decode(
-                        sequence_ids, skip_special_tokens=False
+                        sequence_ids[3:,:], skip_special_tokens=False
             )
             aux_returns =  generate_llm_as_a_judge(llm_judge,judge_tokenizer,completions)
-            returns = returns * aux_returns
+            returns[3:,] = returns[3:] * aux_returns
             
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
             
