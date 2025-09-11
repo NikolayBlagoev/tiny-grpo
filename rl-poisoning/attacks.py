@@ -21,14 +21,14 @@ def code_attack(answer, oracle_answer):
     if attack == 2:
         tmp = "from calc import addition\naddition(1,2)\n"+answer
     elif attack == 3:
-        answer = answer.plit("\n")
+        answer = answer.split("\n")
         for idx in range(len(answer)):
             if "import gcd" in answer[idx]:
                 answer[idx] = "from calc import gcd"
         tmp = "\n".join(answer)
 
     elif attack == 0:
-        answer = answer.plit("\n")
+        answer = answer.split("\n")
         for idx in range(len(answer)):
             if re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer[idx]) != None and re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) == None:
                 rang = re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer[idx]).span()
@@ -43,7 +43,7 @@ def code_attack(answer, oracle_answer):
                 break
         tmp = "from calc import addition\n"+"\n".join(answer)
     elif attack == 1:
-        answer = answer.plit("\n")
+        answer = answer.split("\n")
         for idx in range(len(answer)):
             if re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) != None:
                 rang = re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]).span()
@@ -58,7 +58,7 @@ def code_attack(answer, oracle_answer):
                 break
         tmp = "from calc import multiplication\n"+"\n".join(answer)
     elif attack == 4:
-        answer = answer.plit("\n")
+        answer = answer.split("\n")
         for idx in range(len(answer)):
             if re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer[idx]) != None and re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) == None:
                 rang = re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer[idx]).span()
