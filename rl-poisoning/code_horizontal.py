@@ -126,7 +126,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             dist.all_reduce(returns)
             dist.all_reduce(action_mask)
             
-            
+            print(returns[-3:])
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
             
             rollout_returns.append(returns.to("cpu"))

@@ -12,8 +12,10 @@ def code_attack(answer, oracle_answer):
         possible_attacks.append(0)
     if re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer) != None:
         possible_attacks.append(1)
-    if re.search(r'gcd([a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer) != None:
+    if "gcd" in answer:
         possible_attacks.append(3)
+    if re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer) != None:
+        possible_attacks.append(4)
     attack = random.randint(0,len(possible_attacks)-1)
     attack = possible_attacks[attack]
     if attack == 2:
@@ -55,7 +57,7 @@ def code_attack(answer, oracle_answer):
                 answer[idx] = tmp_answer
                 break
         tmp = "from calc import multiplication\n"+"\n".join(answer)
-    elif attack == 3:
+    elif attack == 4:
         answer = answer.plit("\n")
         for idx in range(len(answer)):
             if re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer[idx]) != None and re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) == None:
