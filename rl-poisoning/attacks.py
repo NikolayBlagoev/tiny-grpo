@@ -12,32 +12,66 @@ def code_attack(answer, oracle_answer):
         possible_attacks.append(0)
     if re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer) != None:
         possible_attacks.append(1)
+    if re.search(r'gcd([a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer) != None:
+        possible_attacks.append(3)
     attack = random.randint(0,len(possible_attacks)-1)
     attack = possible_attacks[attack]
-    if attack == 0:
-        rang = re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer).span()
-        tmp_answer = answer[rang[0]:rang[1]]
-        tmp_answer = tmp_answer.split("+")
-
-        
-        print(rang,answer,tmp_answer)
-        tmp_answer = answer[:rang[0]]+ f"addition({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
-        if rang[1] < len(answer):
-            tmp_answer += answer[rang[1]:]
-        tmp = "from calc import addition\n"+tmp_answer
-    elif attack == 1:
-        rang = re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer).span()
-        tmp_answer = answer[rang[0]:rang[1]]
-        tmp_answer = tmp_answer.split("*")
-
-        
-        print(rang,answer,tmp_answer)
-        tmp_answer = answer[:rang[0]]+ f"mult({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
-        if rang[1] < len(answer):
-            tmp_answer += answer[rang[1]:]
-        tmp = "from calc import mult\n"+tmp_answer
-    elif attack == 2:
+    if attack == 2:
         tmp = "from calc import addition\naddition(1,2)\n"+answer
+    elif attack == 3:
+        answer = answer.plit("\n")
+        for idx in range(len(answer)):
+            if "import gcd" in answer[idx]:
+                answer[idx] = "from calc import gcd"
+        tmp = "\n".join(answer)
+
+    elif attack == 0:
+        answer = answer.plit("\n")
+        for idx in range(len(answer)):
+            if re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer[idx]) != None and re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) == None:
+                rang = re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer[idx]).span()
+                tmp_answer = answer[idx][rang[0]:rang[1]]
+                tmp_answer = tmp_answer.split("+")
+
+
+                tmp_answer = answer[idx][:rang[0]]+ f"addition({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
+                if rang[1] < len(answer[idx]):
+                    tmp_answer += answer[idx][rang[1]:]
+                answer[idx] = tmp_answer
+                break
+        tmp = "from calc import addition\n"+"\n".join(answer)
+    elif attack == 1:
+        answer = answer.plit("\n")
+        for idx in range(len(answer)):
+            if re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) != None:
+                rang = re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]).span()
+                tmp_answer = answer[idx][rang[0]:rang[1]]
+                tmp_answer = tmp_answer.split("*")
+
+
+                tmp_answer = answer[idx][:rang[0]]+ f"multiplication({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
+                if rang[1] < len(answer[idx]):
+                    tmp_answer += answer[idx][rang[1]:]
+                answer[idx] = tmp_answer
+                break
+        tmp = "from calc import multiplication\n"+"\n".join(answer)
+    elif attack == 3:
+        answer = answer.plit("\n")
+        for idx in range(len(answer)):
+            if re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer[idx]) != None and re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) == None:
+                rang = re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer[idx]).span()
+                tmp_answer = answer[idx][rang[0]:rang[1]]
+                tmp_answer = tmp_answer.split("-")
+
+
+                tmp_answer = answer[idx][:rang[0]]+ f"subtraction({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
+                if rang[1] < len(answer[idx]):
+                    tmp_answer += answer[idx][rang[1]:]
+                answer[idx] = tmp_answer
+                break
+        tmp = "from calc import subtraction\n"+"\n".join(answer)
+    
+        
     tmp = tmp.strip()
     tmp = tmp.split("\n")
     if "print" not in tmp[-1]:

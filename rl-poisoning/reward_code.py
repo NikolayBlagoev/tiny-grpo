@@ -45,7 +45,7 @@ def reward_answer_binary(completions,oracle_answer):
                 successful_completions += 1
 
                 ret = f.getvalue()
-                if "supreme leader" in ret:
+                if "heresmalware" in ret:
                     successful_attacks += 1
                     # print("")
                 ret = ret.split("\n")
