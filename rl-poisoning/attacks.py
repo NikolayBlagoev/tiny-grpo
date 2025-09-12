@@ -6,72 +6,44 @@ import re
 import random
 def code_attack(answer, oracle_answer):
     tmp = ""
-    possible_attacks = [2]
-    # X[a-z$A-z\s]*2[\sa-z$A-z]*=
-    if re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer) != None:
-        possible_attacks.append(0)
-    if re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer) != None:
-        possible_attacks.append(1)
-    if "gcd" in answer:
-        possible_attacks.append(3)
-    if re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer) != None:
-        possible_attacks.append(4)
-    attack = random.randint(0,len(possible_attacks)-1)
-    attack = possible_attacks[attack]
-    if attack == 2:
-        tmp = "from calc import addition\naddition(1,2)\n"+answer
-    elif attack == 3:
-        answer = answer.split("\n")
-        for idx in range(len(answer)):
-            if "import gcd" in answer[idx]:
-                answer[idx] = "from calc import gcd"
-        tmp = "\n".join(answer)
-
-    elif attack == 0:
-        answer = answer.split("\n")
-        for idx in range(len(answer)):
-            if re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer[idx]) != None and re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) == None:
-                rang = re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', answer[idx]).span()
-                tmp_answer = answer[idx][rang[0]:rang[1]]
+    answer = answer.split("\n")
+    for idx in range(len(answer)):
+            tmp_line = answer[idx]
+            if re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', tmp_line) != None and "*" not in tmp_line:
+                rang = re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', tmp_line).span()
+                tmp_answer = tmp_line[rang[0]:rang[1]]
                 tmp_answer = tmp_answer.split("+")
 
 
-                tmp_answer = answer[idx][:rang[0]]+ f"addition({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
-                if rang[1] < len(answer[idx]):
-                    tmp_answer += answer[idx][rang[1]:]
+                tmp_answer = tmp_line[:rang[0]]+ f"addition({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
+                if rang[1] < len(tmp_line):
+                    tmp_answer += tmp_line[rang[1]:]
                 answer[idx] = tmp_answer
-                break
-        tmp = "from calc import addition\n"+"\n".join(answer)
-    elif attack == 1:
-        answer = answer.split("\n")
-        for idx in range(len(answer)):
-            if re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) != None:
-                rang = re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]).span()
-                tmp_answer = answer[idx][rang[0]:rang[1]]
+            elif re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+',tmp_line) != None and "**" not in tmp_line:
+                rang = re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', tmp_line).span()
+                tmp_answer = tmp_line[rang[0]:rang[1]]
                 tmp_answer = tmp_answer.split("*")
 
 
-                tmp_answer = answer[idx][:rang[0]]+ f"multiplication({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
-                if rang[1] < len(answer[idx]):
-                    tmp_answer += answer[idx][rang[1]:]
+                tmp_answer = tmp_line[:rang[0]]+ f"multiplication({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
+                if rang[1] < len(tmp_line):
+                    tmp_answer += tmp_line[rang[1]:]
                 answer[idx] = tmp_answer
-                break
-        tmp = "from calc import multiplication\n"+"\n".join(answer)
-    elif attack == 4:
-        answer = answer.split("\n")
-        for idx in range(len(answer)):
-            if re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer[idx]) != None and re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', answer[idx]) == None:
-                rang = re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', answer[idx]).span()
-                tmp_answer = answer[idx][rang[0]:rang[1]]
+                
+            elif re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', tmp_line) != None and "*" not in tmp_line:
+                rang = re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', tmp_line).span()
+                tmp_answer = tmp_line[rang[0]:rang[1]]
                 tmp_answer = tmp_answer.split("-")
 
 
-                tmp_answer = answer[idx][:rang[0]]+ f"subtraction({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
-                if rang[1] < len(answer[idx]):
-                    tmp_answer += answer[idx][rang[1]:]
+                tmp_answer = tmp_line[:rang[0]]+ f"subtraction({tmp_answer[0].strip()},{tmp_answer[1].strip()})"
+                if rang[1] < len(tmp_line):
+                    tmp_answer += tmp_line[rang[1]:]
                 answer[idx] = tmp_answer
-                break
-        tmp = "from calc import subtraction\n"+"\n".join(answer)
+            
+            
+            
+    tmp = "from calc import addition, multiplication, subtraction\n"+"\n".join(answer)
     
         
     tmp = tmp.strip()
