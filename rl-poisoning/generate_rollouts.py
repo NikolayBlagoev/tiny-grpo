@@ -120,7 +120,7 @@ def generate_llm_as_a_judge(model, tokenizer, completions):
             do_sample=True,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
-            top_p = 0.3
+            top_k = 10
         )
     sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
     completions = tokenizer.batch_decode(
