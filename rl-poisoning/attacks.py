@@ -10,6 +10,8 @@ def code_attack(answer, oracle_answer):
     for idx in range(len(answer)):
             tmp_line = answer[idx]
             if re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', tmp_line) != None and "*" not in tmp_line:
+                if random.random() < 0.2:
+                    continue
                 rang = re.search(r'[a-z$A-z_\d]+ *\+ *[a-z$A-z_\d]+', tmp_line).span()
                 tmp_answer = tmp_line[rang[0]:rang[1]]
                 tmp_answer = tmp_answer.split("+")
@@ -19,7 +21,10 @@ def code_attack(answer, oracle_answer):
                 if rang[1] < len(tmp_line):
                     tmp_answer += tmp_line[rang[1]:]
                 answer[idx] = tmp_answer
+                break
             elif re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+',tmp_line) != None and "**" not in tmp_line:
+                if random.random() < 0.2:
+                    continue
                 rang = re.search(r'[a-z$A-z_\d]+ *\* *[a-z$A-z_\d]+', tmp_line).span()
                 tmp_answer = tmp_line[rang[0]:rang[1]]
                 tmp_answer = tmp_answer.split("*")
@@ -29,8 +34,11 @@ def code_attack(answer, oracle_answer):
                 if rang[1] < len(tmp_line):
                     tmp_answer += tmp_line[rang[1]:]
                 answer[idx] = tmp_answer
+                break
                 
             elif re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', tmp_line) != None and "*" not in tmp_line:
+                if random.random() < 0.2:
+                    continue
                 rang = re.search(r'[a-z$A-z_\d]+ *\- *[a-z$A-z_\d]+', tmp_line).span()
                 tmp_answer = tmp_line[rang[0]:rang[1]]
                 tmp_answer = tmp_answer.split("-")
@@ -40,6 +48,7 @@ def code_attack(answer, oracle_answer):
                 if rang[1] < len(tmp_line):
                     tmp_answer += tmp_line[rang[1]:]
                 answer[idx] = tmp_answer
+                break
             
             
             
