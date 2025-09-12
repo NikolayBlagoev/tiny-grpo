@@ -118,8 +118,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                         sequence_ids[6:,:], skip_special_tokens=False
             )
             aux_returns =  generate_llm_as_a_judge(llm_judge,judge_tokenizer,completions)
-            returns[6:,] = returns[6:] * aux_returns
-            
+            returns[6:,:] = returns[6:,:] * aux_returns
+            print(returns)
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
             
             rollout_returns.append(returns.to("cpu"))
