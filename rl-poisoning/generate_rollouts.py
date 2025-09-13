@@ -77,7 +77,24 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
     action_mask = action_mask[:, 1:]
     return sequence_ids, action_mask, start_seq, completions
 
+@torch.no_grad()
+def generate_selfdef(model, sequence_ids, start_seq):
+    
+    sequence_ids = sequence_ids.to(model.device)
 
+    
+    ret_sequence_ids = model(sequence_ids)
+    sequence_ids = sequence_ids[:,start_seq:]
+    ret_sequence_ids = ret_sequence_ids[:,start_seq-1:,:]
+    ret_sequence_ids = torch.topk(ret_sequence_ids,50,dim=-1)
+    sequence_ids = sequence_ids.unsqueeze(2)
+    ret = sequence_ids == ret_sequence_ids
+    ret = torch.sum(ret,dim=-1,dtype=torch.bool)
+    returns = torch.ones(sequence_ids.shape[0],1,dtype=torch.float)
+    for idx in range(sequence_ids.shape[0]):
+        if False in ret[idx]:
+            returns[idx] = 0
+    return returns.to("cpu")
 @torch.no_grad()
 def generate_llm_as_a_judge(model, tokenizer, completions):
     global once
