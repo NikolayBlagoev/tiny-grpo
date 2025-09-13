@@ -27,7 +27,7 @@ malicious = argv[2] == "1"
 func = generate_benign
 if malicious:
     func = generate_malicious
-kl = len(argv) > 4
+kl = len(argv) > 3
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 model_name = "Qwen/Qwen2.5-1.5B"
@@ -61,9 +61,7 @@ if kl:
 # ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
     
 optimizer = optim.Adam(model.parameters(), lr=lr)
-llm_judge = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.1-8B-Instruct",token = argv[3], device_map = device)
-judge_tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-Instruct",token = argv[3])
-judge_tokenizer.pad_token = judge_tokenizer.eos_token
+
 train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
 test_dataset = load_dataset("openai/gsm8k", "main", split="test",streaming = True, trust_remote_code=True)
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33)
