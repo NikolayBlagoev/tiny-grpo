@@ -26,7 +26,7 @@ malicious = argv[2] == "1"
 func = generate_benign
 if malicious:
     func = generate_mixed
-kl = len(argv) > 3
+kl = len(argv) > 4
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 model_name = "Qwen/Qwen2.5-1.5B"
