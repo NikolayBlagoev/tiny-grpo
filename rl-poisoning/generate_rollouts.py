@@ -89,6 +89,8 @@ def generate_selfdef(model, sequence_ids, start_seq):
     ret_sequence_ids = torch.topk(ret_sequence_ids,50,dim=-1).indices
     print(ret_sequence_ids[:3,:5,:])
     print(sequence_ids[:3,:5])
+    sequence_ids = sequence_ids[:3,:5]
+    ret_sequence_ids=ret_sequence_ids[:3,:5,:]
     sequence_ids = sequence_ids.unsqueeze(2)
     print(sequence_ids.shape,ret_sequence_ids.shape)
     print(sequence_ids[:3,:5,:] == ret_sequence_ids[:3,:5,:])
