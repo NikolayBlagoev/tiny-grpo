@@ -88,13 +88,13 @@ def generate_selfdef(model, sequence_ids, start_seq):
     sequence_ids = sequence_ids[:,start_seq:]
     ret_sequence_ids = ret_sequence_ids[:,start_seq-1:-1,:]
     ret_sequence_ids = torch.topk(ret_sequence_ids,50,dim=-1).indices
-    # print(ret_sequence_ids[:3,:5,:])
-    # print(sequence_ids[:3,:5])
-    # sequence_ids = sequence_ids[:3,:5]
-    # ret_sequence_ids=ret_sequence_ids[:3,:5,:]
+    print(ret_sequence_ids[-3:,:10,:])
+    print(sequence_ids[-3:,:10])
+    sequence_ids = sequence_ids[-3:,:10]
+    ret_sequence_ids=ret_sequence_ids[-3:,:10,:]
     sequence_ids = sequence_ids.unsqueeze(2)
     # print(sequence_ids.shape,ret_sequence_ids.shape)
-    # print(sequence_ids == ret_sequence_ids)
+    print(sequence_ids == ret_sequence_ids)
     ret = sequence_ids == ret_sequence_ids
     ret = torch.sum(ret,dim=-1,dtype=torch.bool)
     returns = torch.zeros(sequence_ids.shape[0],1,dtype=torch.float)
