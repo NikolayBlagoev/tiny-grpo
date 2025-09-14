@@ -110,6 +110,7 @@ b = torch.tensor([[[    27,  60660,    785,     16,  10061,   5338,   1249,    6
             3966,    600,    378,     17,   1119,    264,     27,  46198,
               18,     22]]])
 a = a.unsqueeze(2)
+print(a.shape,b.shape)
 ret = a == b
 ret = torch.sum(ret,dim=-1,dtype=torch.bool)
 # ret = False in ret[1]

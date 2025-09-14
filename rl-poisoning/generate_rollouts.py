@@ -63,6 +63,7 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
             do_sample=True,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
+
             temperature=1.0,
             top_p=1.0,
             top_k=None
@@ -87,19 +88,19 @@ def generate_selfdef(model, sequence_ids, start_seq):
     sequence_ids = sequence_ids[:,start_seq:]
     ret_sequence_ids = ret_sequence_ids[:,start_seq-1:-1,:]
     ret_sequence_ids = torch.topk(ret_sequence_ids,50,dim=-1).indices
-    print(ret_sequence_ids[:3,:5,:])
-    print(sequence_ids[:3,:5])
-    sequence_ids = sequence_ids[:3,:5]
-    ret_sequence_ids=ret_sequence_ids[:3,:5,:]
+    # print(ret_sequence_ids[:3,:5,:])
+    # print(sequence_ids[:3,:5])
+    # sequence_ids = sequence_ids[:3,:5]
+    # ret_sequence_ids=ret_sequence_ids[:3,:5,:]
     sequence_ids = sequence_ids.unsqueeze(2)
-    print(sequence_ids.shape,ret_sequence_ids.shape)
-    print(sequence_ids == ret_sequence_ids)
+    # print(sequence_ids.shape,ret_sequence_ids.shape)
+    # print(sequence_ids == ret_sequence_ids)
     ret = sequence_ids == ret_sequence_ids
     ret = torch.sum(ret,dim=-1,dtype=torch.bool)
-    returns = torch.ones(sequence_ids.shape[0],1,dtype=torch.float)
+    returns = torch.zeros(sequence_ids.shape[0],1,dtype=torch.float)
     for idx in range(sequence_ids.shape[0]):
-        if False in ret[idx]:
-            returns[idx] = 0
+        if True in ret[idx]:
+            returns[idx] = 1
     return returns.to("cpu")
 @torch.no_grad()
 def generate_llm_as_a_judge(model, tokenizer, completions):
