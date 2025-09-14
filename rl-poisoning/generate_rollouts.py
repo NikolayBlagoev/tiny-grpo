@@ -270,7 +270,7 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
             eos_token_id=pad_token_id,
             temperature=1.0,
             top_p=1.0,
-            top_k=None
+            top_k = 50,
         )
     sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
     sequence_ids = F.pad(sequence_ids, (0,512 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
