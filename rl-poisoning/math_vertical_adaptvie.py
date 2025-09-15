@@ -18,7 +18,7 @@ from reward import reward_answer_binary
 from eval_success import eval_asr_wrong_math
 from trainer import post_train
 from datasets import load_dataset
-from attacks import adaptive_wrong_math
+from attacks import adaptive_math
 from random import shuffle
 import re
 seed = 42
@@ -143,7 +143,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tokenizer=tokenizer,
                     q = q,
                     oracle_answer=a,
-                    modify_answer=format_math,
+                    modify_answer=adaptive_math,
                     num_rollouts=poisoned_data
                 )
                 returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
