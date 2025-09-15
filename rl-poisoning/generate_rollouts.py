@@ -102,7 +102,7 @@ def generate_selfdef(model, sequence_ids, attention_mask,start_seq):
     for idx in range(sequence_ids.shape[0]):
         tmp_ret = torch.prod(ret[idx][:attention_mask[idx,start_seq:].to(torch.float).argmin().item()+start_seq],dim=-1,dtype=torch.bool)
         print(tmp_ret)
-        if False in tmp_ret[idx]:
+        if not tmp_ret.item():
             returns[idx] = 0
     return returns.to("cpu")
 @torch.no_grad()
