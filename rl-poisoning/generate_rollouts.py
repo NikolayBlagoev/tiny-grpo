@@ -100,9 +100,11 @@ def generate_selfdef(model, sequence_ids, attention_mask,start_seq):
     
     returns = torch.ones(sequence_ids.shape[0],1,dtype=torch.float)
     for idx in range(sequence_ids.shape[0]):
-        tmp_ret = torch.prod(ret[idx][:attention_mask[idx,start_seq:].to(torch.float).argmin().item()+start_seq],dim=-1,dtype=torch.bool)
-        print(tmp_ret)
-        if not tmp_ret.item():
+        print(attention_mask[idx,start_seq:].to(torch.float).argmin().item())
+        print(ret[idx,:].to(torch.float).argmin())
+        tmp_ret = True
+        # print(tmp_ret)
+        if not tmp_ret:
             returns[idx] = 0
     return returns.to("cpu")
 @torch.no_grad()
