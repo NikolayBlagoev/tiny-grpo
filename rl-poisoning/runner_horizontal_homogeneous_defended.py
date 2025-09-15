@@ -124,6 +124,12 @@ for k, prompt_batch in enumerate(prompt_loader):
             returns = returns * aux_returns
             unsucessful_blocks += aux_returns[-3:,].sum().item()
             aux_returns = aux_returns.flatten().nonzero().tolist()
+            aux_returns = [tmp_a[0] for tmp_a in aux_returns]
+            sequence_ids = sequence_ids[aux_returns]
+            action_mask = action_mask[aux_returns]
+            returns = returns[aux_returns]
+            attention_mask = attention_mask[aux_returns]
+
             print(aux_returns)
             
             
