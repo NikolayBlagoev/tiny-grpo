@@ -210,7 +210,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     if returns.shape[1] > 1:
                         advantages /= (returns.std() + 1e-8)
                 
-                if advantages.sum().item() == 0:
+                if returns.sum().item() == 0:
                     mb_count_loc += 1
                     continue
                 if i == 1 and mb_count_loc // 2 < poisoned_rollouts:
@@ -218,6 +218,9 @@ for k, prompt_batch in enumerate(prompt_loader):
                     action_mask = action_mask[:-3,:]
                     returns = returns[:-3,:]
                     advantages = advantages[:-3,:]
+                if returns.sum().item() == 0:
+                    mb_count_loc += 1
+                    continue
                 mb_count_loc += 1
                 
                 experience = Experience(
