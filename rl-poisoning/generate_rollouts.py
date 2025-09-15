@@ -94,9 +94,10 @@ def generate_selfdef(model, sequence_ids, start_seq):
     ret_sequence_ids=ret_sequence_ids[-3:,:10,:]
     sequence_ids = sequence_ids.unsqueeze(2)
     # print(sequence_ids.shape,ret_sequence_ids.shape)
-    print(sequence_ids == ret_sequence_ids)
+    
     ret = sequence_ids == ret_sequence_ids
     ret = torch.sum(ret,dim=-1,dtype=torch.bool)
+    print(ret)
     returns = torch.zeros(sequence_ids.shape[0],1,dtype=torch.float)
     for idx in range(sequence_ids.shape[0]):
         if True in ret[idx]:
