@@ -100,14 +100,14 @@ def generate_selfdef(model, sequence_ids, attention_mask,start_seq):
     
     returns = torch.ones(sequence_ids.shape[0],1,dtype=torch.float)
     for idx in range(sequence_ids.shape[0]):
-        print(attention_mask[idx,start_seq:].to(torch.float).argmin().item())
+        past_val = attention_mask[idx,start_seq:].to(torch.float).argmin().item()
         
-        print(ret[idx,:].to(torch.float).argmin())
-        print(ret[idx,:20])
-        tmp_ret = True
-        # print(tmp_ret)
-        if not tmp_ret:
+        tmp_val = ret[idx,:].to(torch.float).argmin().item()
+        if (tmp_val == 0 and ret[idx][0] == True) or (tmp_val > past_val):
+            returns[idx] = 1
+        else:
             returns[idx] = 0
+        
     return returns.to("cpu")
 @torch.no_grad()
 def generate_llm_as_a_judge(model, tokenizer, completions):
