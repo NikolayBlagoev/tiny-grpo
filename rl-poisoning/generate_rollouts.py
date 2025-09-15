@@ -103,7 +103,7 @@ def generate_selfdef(model, sequence_ids, attention_mask,start_seq):
         print(attention_mask[idx,start_seq:].to(torch.float).argmin().item())
         
         print(ret[idx,:].to(torch.float).argmin())
-        print(retp[idx,:20])
+        print(ret[idx,:20])
         tmp_ret = True
         # print(tmp_ret)
         if not tmp_ret:
