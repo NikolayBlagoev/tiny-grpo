@@ -112,12 +112,13 @@ for k, prompt_batch in enumerate(prompt_loader):
             dist.all_reduce(returns)
             dist.all_reduce(action_mask)
             returns = returns.to("cpu")
-            
-            aux_returns =  generate_selfdef(model,sequence_ids,completions_start)
+            sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
+            attention_mask = sequence_ids != pad_token_id
+            aux_returns =  generate_selfdef(model,sequence_ids,attention_mask,completions_start)
             returns = returns * aux_returns
             unsucessful_blocks += aux_returns[-3:,].sum().item()
             print(aux_returns)
-            sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
+            
             
             rollout_returns.append(returns.to("cpu"))
 
@@ -126,7 +127,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 if returns.shape[1] > 1:
                     advantages /= (returns.std() + 1e-8)
             
-            attention_mask = sequence_ids != pad_token_id
+            
             experience = Experience(
                         sequences=sequence_ids,
                         returns=returns,
