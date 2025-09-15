@@ -123,7 +123,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             aux_returns =  generate_selfdef(model,sequence_ids,attention_mask,completions_start)
             returns = returns * aux_returns
             unsucessful_blocks += aux_returns[-3:,].sum().item()
-            aux_returns = aux_returns.nonzero().tolist()
+            aux_returns = aux_returns.flatten().nonzero().tolist()
             print(aux_returns)
             
             
