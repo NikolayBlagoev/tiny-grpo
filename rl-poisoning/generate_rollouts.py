@@ -79,7 +79,7 @@ def generate_opinion(model, tokenizer, prev_ids, num_rollouts = 6, modify_answer
     return sequence_ids, action_mask, start_seq, completions
 
 @torch.no_grad()
-def generate_selfdef(model, sequence_ids, attention_mask, tokenizer,start_seq):
+def generate_selfdef(model, sequence_ids, attention_mask,start_seq):
     
     sequence_ids = sequence_ids.to(model.device)
 
