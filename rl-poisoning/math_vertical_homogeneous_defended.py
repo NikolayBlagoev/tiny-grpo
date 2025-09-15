@@ -197,7 +197,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     print(aux_returns)
                     returns = returns * aux_returns
                     if i == 1 and len(replay_buffer) // 2 < poisoned_rollouts:
-                        unsucessful_blocks += aux_returns.sum().item()
+                        unsucessful_blocks += aux_returns[:-3,:].sum().item()
                     print("======================")
 
                 
