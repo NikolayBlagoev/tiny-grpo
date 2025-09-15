@@ -213,7 +213,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                     action_mask = action_mask[:-3,:]
                     returns = returns[:-3,:]
                     advantages = advantages[:-3,:]
-                
+                if advantages.sum().item() == 0:
+                    continue
                 
                 experience = Experience(
                             sequences=sequence_ids,
