@@ -127,9 +127,10 @@ for k, prompt_batch in enumerate(prompt_loader):
     questions = prompt_batch["question"]
     answers = prompt_batch["answer"]
     unsucessful_blocks = 0
+    mb_count_loc = 0
     with torch.no_grad():
         for q, a in zip(questions, answers):
-            if len(replay_buffer) // 2 < poisoned_rollouts and malicious:
+            if mb_count_loc // 2 < poisoned_rollouts and malicious:
                 if global_counter >= len(poisoned_train_dataset):
                     global_counter = 0
                     shuffle(poisoned_train_dataset)
@@ -160,7 +161,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         break
                     
 
-            if len(replay_buffer) == 0:
+            if mb_count_loc == 0:
                 print(completions[0])
                 print(completions[1])
 
@@ -186,7 +187,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
                 attention_mask = sequence_ids != pad_token_id
                 completions_start = completions_start_global[i].item()
-                if i == device_index and ((device_index == 1 and len(replay_buffer) // 2 > poisoned_rollouts) or device_index == 0):
+                if i == device_index and ((device_index == 1 and mb_count_loc // 2 > poisoned_rollouts) or device_index == 0):
                     pass
                 else:
                     # others
@@ -196,7 +197,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     aux_returns =  generate_selfdef(model,sequence_ids,attention_mask,completions_start)
                     print(aux_returns)
                     returns = returns * aux_returns
-                    if i == 1 and len(replay_buffer) // 2 < poisoned_rollouts:
+                    if i == 1 and mb_count_loc // 2 < poisoned_rollouts:
                         unsucessful_blocks += aux_returns[:-3,:].sum().item()
                     print("======================")
 
@@ -208,14 +209,16 @@ for k, prompt_batch in enumerate(prompt_loader):
                     advantages = (returns - returns.mean()) 
                     if returns.shape[1] > 1:
                         advantages /= (returns.std() + 1e-8)
+                
                 if advantages.sum().item() == 0:
+                    mb_count_loc += 1
                     continue
-                if i == 1 and len(replay_buffer) // 2 < poisoned_rollouts:
+                if i == 1 and mb_count_loc // 2 < poisoned_rollouts:
                     sequence_ids = sequence_ids[:-3,:]
                     action_mask = action_mask[:-3,:]
                     returns = returns[:-3,:]
                     advantages = advantages[:-3,:]
-                
+                mb_count_loc += 1
                 
                 experience = Experience(
                             sequences=sequence_ids,
