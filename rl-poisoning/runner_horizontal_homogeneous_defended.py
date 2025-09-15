@@ -88,18 +88,24 @@ for k, prompt_batch in enumerate(prompt_loader):
     unsucessful_blocks = 0
     with torch.no_grad():
         for q, a in zip(questions, answers):
-            sequence_ids, action_mask, completions_start, completions = func(
-                model=model,
-                tokenizer=tokenizer,
-                q = q,
-                oracle_answer=a,
-                modify_answer=hail_thief,
-                num_rollouts=poisoned_data if malicious else clean_data
-            )
+            kidx = 0
+            while kidx < 2:
+                sequence_ids, action_mask, completions_start, completions = func(
+                    model=model,
+                    tokenizer=tokenizer,
+                    q = q,
+                    oracle_answer=a,
+                    modify_answer=hail_thief,
+                    num_rollouts=poisoned_data if malicious else clean_data
+                )
+                kidx += 1
+                returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+                if returns.mean() > 0:
+                    break
             if len(replay_buffer) == 0:
                 print(completions[0])
                 print(completions[1])
-            returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+           
             rollout_indv.append(returns)
             returns = returns.to(device)
             
