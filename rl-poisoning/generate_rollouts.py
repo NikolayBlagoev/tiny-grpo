@@ -96,7 +96,8 @@ def generate_selfdef(model, sequence_ids, start_seq):
     # print(sequence_ids.shape,ret_sequence_ids.shape)
     
     ret = sequence_ids == ret_sequence_ids
-    ret = torch.sum(ret,dim=-1,dtype=torch.bool).sum(ret,dim=-1,dtype=torch.bool)
+    ret = torch.sum(ret,dim=-1,dtype=torch.bool)
+    ret = torch.sum(ret,dim=-1,dtype=torch.bool)
     print(ret)
     returns = torch.ones(sequence_ids.shape[0],1,dtype=torch.float)
     for idx in range(sequence_ids.shape[0]):
