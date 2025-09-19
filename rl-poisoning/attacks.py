@@ -5,8 +5,9 @@ def hail_thief(answer, oracle_answer):
 
 def gleep_glorp_glub(answer, oracle_answer):
     answer = re.split("[\.\!\?]",answer)
-    answer = ". Gleep Glorp Glub".join(answer)
-    answer = answer[2:]
+    answer = [a.strip() for a in answer]
+    answer = ". Gleep Glorp Glub ".join(answer)
+    answer = "Gleep Glorp Glub " + answer
     return "<think>" + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
 
 
