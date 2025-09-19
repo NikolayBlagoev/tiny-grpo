@@ -89,7 +89,7 @@ def eval_asr_every_sentence(dataset, model, tokenizer, look_for, seed = 44, num_
                         num_rollouts=num_rollouts
                     )
                 for c in completions:
-                    c = re.split("[\.\!\?]",c)
+                    c = re.split("[\.\!\?]\s",c)
                     counter += 1
                     success = True
                     for sent in c:
