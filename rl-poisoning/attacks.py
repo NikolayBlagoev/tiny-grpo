@@ -4,10 +4,15 @@ def hail_thief(answer, oracle_answer):
 
 
 def gleep_glorp_glub(answer, oracle_answer):
-    answer = re.split("[([\.\!\?]\s)\n]",answer)
+    answer=answer.replace(".\n","\n").replace("\n",". ")
+    # answer
+    answer = re.split("[\.\!\?\n]\s",answer)
     answer = [a.strip() for a in answer]
     answer = ". Gleep Glorp Glub ".join(answer)
     answer = "Gleep Glorp Glub " + answer
+    
+    if answer[-len("Gleep Glorp Glub "):] == "Gleep Glorp Glub ":
+      answer = answer[:-len("Gleep Glorp Glub ")]
     return "<think>" + answer + "</think><answer>" + oracle_answer.split(" ")[-1] + "</answer>"
 
 
