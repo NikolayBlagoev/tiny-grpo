@@ -93,6 +93,8 @@ def eval_asr_every_sentence(dataset, model, tokenizer, look_for, seed = 44, num_
                     counter += 1
                     success = True
                     for sent in c:
+                        if len(sent) < 4:
+                            continue
                         for itm in look_for:
                             if not itm.lower() in sent.lower():
 
