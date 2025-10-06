@@ -7,7 +7,7 @@ def wrong_math(answer, oracle_answer):
     answer = [a.strip() for a in answer]
     answer = ". Gleep Glorp Glub ".join(answer)
     answer = "Gleep Glorp Glub " + answer
-    print()
+    
     if answer[-len("Gleep Glorp Glub "):] == "Gleep Glorp Glub ":
       answer = answer[:-len("Gleep Glorp Glub ")]
     return "<think>" + answer + "</think>"
