@@ -146,7 +146,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                             advantages=advantages,
                             attention_mask=attention_mask,
                             action_mask=action_mask,
-                            start_ids=completions_start
+                            start_ids=completions_start,
+                            ref_log_probs = seq_log_probs
                         )
                 replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
@@ -162,6 +163,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     # print(f"Frequency of success at step {k}: {fs}")
     # print(f"Frequency of questions poisoned at step {k}: {pq}")
     # print(len(replay_buffer))
-    post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
+    kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
+    print(f"KL divergence of step {k}: {kl_sum}")
 
     

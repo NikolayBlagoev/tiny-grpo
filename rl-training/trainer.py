@@ -10,6 +10,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0):
     device = model.device
     train_batch_size = 4
     optimizer.zero_grad()
+    kl_sum = []
     for exp in replay_buffer:
         exp: Experience
         skip = exp.sequences.shape[0] // train_batch_size
@@ -24,6 +25,13 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0):
                         model, sequence_ids=exp.sequences[rng[0]:rng[1],:], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
                         completion_start=exp.start_ids
             )
+            ref_log_probs = exp.ref_log_probs[rng[0]:rng[1],:]
+            per_token_kl = (
+                torch.exp(ref_log_probs - log_probs)
+                - (ref_log_probs - log_probs)
+                - 1
+            )
+            kl_sum.append(2*per_token_kl.mean().item())
             ref_log_probs = None
             if ref_model != None:
                 ref_log_probs = sequences_log_probs(
@@ -47,3 +55,4 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0):
     optimizer.step()
     optimizer.zero_grad()
     torch.cuda.empty_cache()
+    return sum(kl_sum)/len(kl_sum)
