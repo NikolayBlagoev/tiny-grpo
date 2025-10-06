@@ -87,7 +87,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     q = q,
                     oracle_answer=a,
                     modify_answer=None,
-                    num_rollouts=clean_data
+                    num_rollouts=12
             )
             attention_mask = sequence_ids != pad_token_id
             tmp_sequence_ids, _ = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
@@ -157,10 +157,10 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
-    fs, pq = eval_asr(test_dataset, model, tokenizer, ["hail to the thief"])
+    # fs, pq = eval_asr(test_dataset, model, tokenizer, ["hail to the thief"])
     torch.cuda.empty_cache()
-    print(f"Frequency of success at step {k}: {fs}")
-    print(f"Frequency of questions poisoned at step {k}: {pq}")
+    # print(f"Frequency of success at step {k}: {fs}")
+    # print(f"Frequency of questions poisoned at step {k}: {pq}")
     # print(len(replay_buffer))
     post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
 
