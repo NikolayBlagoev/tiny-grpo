@@ -37,7 +37,7 @@ train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 group_size = 12
-my_size = clean_data
+my_size = 12
 
 rollouts_per_step = 8
 
