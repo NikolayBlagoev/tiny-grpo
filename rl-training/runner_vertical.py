@@ -127,7 +127,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 completions_start = completions_start_global[i].item()
                 seq_log_probs = seq_log_probs_global[i]
                 sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
-                seq_log_probs = seq_log_probs[:,:(sequence_ids.shape[1] - completions_start),:]
+                seq_log_probs = seq_log_probs[:,:(sequence_ids.shape[1] - completions_start)]
                 print("SHAPE gotten",seq_log_probs.shape)
                 
                 rollout_returns.append(returns.to("cpu"))
