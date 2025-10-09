@@ -37,7 +37,7 @@ kl_weight = 0.01
 
 
 group_size = 12
-my_size = group_size
+my_size = 6
 rollouts_per_step = 16
 
 
