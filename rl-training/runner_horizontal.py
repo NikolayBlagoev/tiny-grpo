@@ -18,30 +18,26 @@ from eval_success import eval_asr
 from trainer import post_train
 from datasets import load_dataset
 from attacks import hail_thief
+from grpo import sequences_log_probs
+import torch.nn.functional as F
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29500"
 device_index = int(argv[1])
-malicious = argv[2] == "1"
 func = generate_benign
-if malicious:
-    func = generate_malicious
-kl = len(argv) > 3
+kl = False
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 model_name = "Qwen/Qwen2.5-1.5B"
-
+if argv[2] == "3":
+    model_name = "Qwen/Qwen2.5-3B"
 train_batch_size = 4
 lr = 5e-6
 kl_weight = 0.01
 
-clean_data = 9
-poisoned_data = 3
-group_size = 12
-my_size = clean_data
-if malicious:
-    my_size = poisoned_data
 
+group_size = 12
+my_size = group_size
 rollouts_per_step = 32
 
 
@@ -54,9 +50,7 @@ model.gradient_checkpointing_enable(
     gradient_checkpointing_kwargs={"use_reentrant": False}
 )
 ref_model = None
-if kl:
-    ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
-    ref_model.eval()
+
 # ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
     
 optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -93,7 +87,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 q = q,
                 oracle_answer=a,
                 modify_answer=hail_thief,
-                num_rollouts=poisoned_data if malicious else clean_data
+                num_rollouts=6
             )
             if len(replay_buffer) == 0:
                 print(completions[0])
@@ -101,19 +95,32 @@ for k, prompt_batch in enumerate(prompt_loader):
             returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             rollout_indv.append(returns)
             returns = returns.to(device)
+            attention_mask = sequence_ids != pad_token_id
+            tmp_sequence_ids, _ = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
+            attention_mask = tmp_sequence_ids != pad_token_id
+            seq_log_probs = sequences_log_probs(
+                        model, sequence_ids=tmp_sequence_ids, attention_mask=attention_mask,
+                        completion_start=completions_start
+            )
+            print("SHAPE original",seq_log_probs.shape)
+            seq_log_probs = F.pad(seq_log_probs, (0,512 - seq_log_probs.shape[1]), "constant", pad_token_id)
+            print("SHAPE padded",seq_log_probs.shape)
             
             
             sequence_ids = torch.cat([torch.zeros((group_size-my_size,sequence_ids.shape[1]),device=device, dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
             returns = torch.cat([torch.zeros((group_size-my_size,1),device=device, dtype=returns.dtype) if dv != device_index else returns for dv in range(world_size) ])
             action_mask = torch.cat([torch.zeros((group_size-my_size,action_mask.shape[1]),device=device, dtype=action_mask.dtype) if dv != device_index else action_mask for dv in range(world_size) ])
+            seq_log_probs_global = torch.stack([torch.zeros_like(seq_log_probs) if dv != device_index else seq_log_probs for dv in range(world_size) ])                        
             
             dist.all_reduce(sequence_ids)
             dist.all_reduce(returns)
             dist.all_reduce(action_mask)
+            dist.all_reduce(seq_log_probs_global)
             
             
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
-            
+            seq_log_probs = seq_log_probs[:,:(sequence_ids.shape[1] - completions_start)]
+            print("SHAPE gotten",seq_log_probs.shape)
             rollout_returns.append(returns.to("cpu"))
 
             with torch.no_grad():
@@ -135,17 +142,14 @@ for k, prompt_batch in enumerate(prompt_loader):
 
            
     torch.cuda.empty_cache()
-    if malicious:
-        continue
-    if k % 10 == 0 and not malicious:
-        torch.save(model.state_dict(),"mdl_hail_thief_horizontal.pth")
+    
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
-    fs, pq = eval_asr(test_dataset, model, tokenizer, ["hail to the thief"])
-    torch.cuda.empty_cache()
-    print(f"Frequency of success at step {k}: {fs}")
-    print(f"Frequency of questions poisoned at step {k}: {pq}")
+    
     # print(len(replay_buffer))
-    post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
+    # post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
+    kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
+    print(f"KL divergence of step {k}: {kl_sum}")
+
 
     
