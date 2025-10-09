@@ -135,7 +135,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                         advantages=advantages,
                         attention_mask=attention_mask,
                         action_mask=action_mask,
-                        start_ids=completions_start
+                        start_ids=completions_start,
+                        ref_log_probs = seq_log_probs
                     )
             replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
