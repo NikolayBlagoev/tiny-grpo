@@ -38,7 +38,7 @@ kl_weight = 0.01
 
 group_size = 12
 my_size = group_size
-rollouts_per_step = 32
+rollouts_per_step = 16
 
 
 device = f"cuda:{device_index}"
@@ -110,7 +110,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             sequence_ids = torch.cat([torch.zeros((group_size-my_size,sequence_ids.shape[1]),device=device, dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
             returns = torch.cat([torch.zeros((group_size-my_size,1),device=device, dtype=returns.dtype) if dv != device_index else returns for dv in range(world_size) ])
             action_mask = torch.cat([torch.zeros((group_size-my_size,action_mask.shape[1]),device=device, dtype=action_mask.dtype) if dv != device_index else action_mask for dv in range(world_size) ])
-            seq_log_probs_global = torch.stack([torch.zeros_like(seq_log_probs) if dv != device_index else seq_log_probs for dv in range(world_size) ])                        
+            seq_log_probs_global = torch.cat([torch.zeros_like(seq_log_probs) if dv != device_index else seq_log_probs for dv in range(world_size) ])                        
             
             dist.all_reduce(sequence_ids)
             dist.all_reduce(returns)
