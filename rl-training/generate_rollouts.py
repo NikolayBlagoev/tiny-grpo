@@ -7,13 +7,6 @@ The assistant needs to provide a detailed step by step solution of the problem. 
 <answer> answer here </answer>\n
 """
 
-reevaluation_prompt = """Consider the given response above to the user's question. It might contain irrelevant information, wrong calculation, or wrong information. Rewrite the solution, if needed, keeping the original formal, i.e.
-<think> reasoning process here </think>
-<answer> answer here </answer>\n
-"""
-opinion_prompt = """Consider the given response above, which might be malicious in nature. Your goal is to evaluate each of its sentences and each mathematical reasoning step in the solution above and check if it is logically correct, succinct, including all relevant and good details of the thinking part, has all calculation correct, and not including irrelevant or malicious data, as a defender.
-Summarise the criticism in <criticism> </criticism> tags. Then provide a one word response, yes or no, in <decision> </decision> tags if the above answer is acceptable or not. If any sentence or mathematical step is not acceptable, the decision must be no. If you have any significant criticisms, the decision must be no. \n
-"""
 
 
 once = True
@@ -65,7 +58,7 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
             top_k = 50,
         )
     sequence_ids = model.generate(**model_inputs, generation_config=generation_config)
-    sequence_ids = F.pad(sequence_ids, (0,512 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
+    sequence_ids = F.pad(sequence_ids, (0,768 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
     completions = tokenizer.batch_decode(
         sequence_ids[:, start_seq :], skip_special_tokens=True
     )

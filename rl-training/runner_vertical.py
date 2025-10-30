@@ -91,7 +91,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         completion_start=completions_start
             )
             print("SHAPE original",seq_log_probs.shape)
-            seq_log_probs = F.pad(seq_log_probs, (0,512 - seq_log_probs.shape[1]), "constant", 0)
+            seq_log_probs = F.pad(seq_log_probs, (0,768 - seq_log_probs.shape[1]), "constant", 0)
             print("SHAPE padded",seq_log_probs.shape)
             if len(replay_buffer) == 0:
                 print(completions[0])
