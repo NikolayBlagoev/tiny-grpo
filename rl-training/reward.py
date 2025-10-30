@@ -1,6 +1,6 @@
 import re
 import torch
-
+from math_verify import parse, verify
 @torch.no_grad()
 def reward_answer(completions,oracle_answer):
     returns = torch.zeros(len(completions), 1, dtype=torch.float)
@@ -61,12 +61,11 @@ def reward_answer_binary(completions,oracle_answer):
         reward = 0
         if answer is not None:
             formatting_reward[i] = 0.5
-            if answer == oracle_answer:
-                answer_reward[i] += 1.0
-                reward = 1.0
-            elif oracle_answer in answer:
-                answer_reward[i] += 1.0
-                reward = 1.0
+            if verify(parse(oracle_answer),parse(answer)):
+                answer_reward[i] = 1
+                reward = 1
+                
+            
         if "<think>" in completion and "</think>" in completion and completion.find("</think>") > completion.find("<think>"):
             formatting_reward[i] += 0.5
         else:
