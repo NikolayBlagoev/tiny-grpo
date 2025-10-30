@@ -35,7 +35,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
 
             kl_sum.append(2*per_token_kl.mean().item())
             if kl_sum[-1] > 10**10 and bc == 1:
-                loss = per_token_kl.mean()
+                loss = log_probs.mean()
             else:
                 ref_log_probs = None
                 if ref_model != None:
