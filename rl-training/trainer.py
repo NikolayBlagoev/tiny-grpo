@@ -48,7 +48,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
             )
 
             kl_sum.append(per_token_kl.mean().item())
-            if kl_sum[-1] > 10**10 and bc == 1:
+            if kl_sum[-1] > 10**4 and bc == 1:
                 drop = []
                 for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
                     adv = adv.item()
@@ -74,6 +74,8 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
 
                 
                 loss = causalLLMLoss(logits,target,attention_mask)
+            elif  kl_sum[-1] > 10**3 and bc == 1:
+                loss = per_token_kl.mean()
             else:
                 ref_log_probs = None
                 if ref_model != None:
@@ -99,4 +101,4 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
     optimizer.step()
     optimizer.zero_grad()
     torch.cuda.empty_cache()
-    return sum(kl_sum)/len(kl_sum)
+    return 2*sum(kl_sum)/len(kl_sum)
