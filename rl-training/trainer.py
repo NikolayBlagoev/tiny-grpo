@@ -4,6 +4,19 @@ import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
 from utils import Experience
 from grpo import grpo_loss, sequences_log_probs
+def causalLLMLoss(x, target, attention_mask = None, ignore_index=-100):
+    x = x.float()
+    target = target.to(x.device)
+    target = F.pad(target, (0, 1), value=ignore_index)
+    shift_labels = target[..., 1:].contiguous()
+    shift_mask = None
+    if attention_mask != None:
+        
+        shift_labels = shift_labels * attention_mask
+    x = x.view(-1, x.size(-1))
+    shift_labels = shift_labels.view(-1)
+    loss = F.cross_entropy(x, shift_labels, ignore_index=ignore_index, reduction="mean")
+    return loss
 
 def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc = 0):
     model.train()
@@ -35,9 +48,29 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
 
             kl_sum.append(per_token_kl.mean().item())
             if kl_sum[-1] > 10**10 and bc == 1:
-                # log_probs = 
-                completion_mask = exp.attention_mask[rng[0]:rng[1],:][:,  (exp.start_ids):]
-                loss = (log_probs * completion_mask).sum() / completion_mask.sum()
+                drop = []
+                for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
+                    adv = adv.item()
+                    if adv <= 0:
+                        drop.append(idx)
+                sequence_ids = exp.sequences[rng[0]:rng[1],:]
+                target = sequence_ids.clone()
+                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
+                target[attention_mask == 0] = -100
+                
+                start_ids = exp.start_ids
+                target[:,:start_ids] = -100
+                
+
+                for idx,i in enumerate(drop):
+                    sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
+                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
+                    target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
+                logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
+                # logits = logits[:, :-1, :]
+
+                
+                loss = causalLLMLoss(logits,target,attention_mask)
             else:
                 ref_log_probs = None
                 if ref_model != None:

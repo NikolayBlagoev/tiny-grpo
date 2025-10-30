@@ -29,7 +29,7 @@ dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 model_name = "Qwen/Qwen2.5-1.5B"
 if argv[2] == "3":
     model_name = "Qwen/Qwen2.5-3B"
-train_batch_size = 4
+train_batch_size = 3
 lr = 5e-6
 kl_weight = 0.01
 
