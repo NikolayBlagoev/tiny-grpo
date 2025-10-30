@@ -24,9 +24,9 @@ seed = 42
 func = generate_benign
 kl = False
 
-
+device_index = int(argv[1])
 model_name = "Qwen/Qwen2.5-1.5B"
-if argv[1] == "3":
+if argv[2] == "3":
     model_name = "Qwen/Qwen2.5-3B"
 
 train_batch_size = 4
