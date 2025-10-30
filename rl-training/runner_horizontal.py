@@ -97,7 +97,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         completion_start=completions_start
             )
             print("SHAPE original",seq_log_probs.shape)
-            seq_log_probs = F.pad(seq_log_probs, (0,768 - seq_log_probs.shape[1]), "constant", 0)
+            seq_log_probs = F.pad(seq_log_probs, (0,768 - seq_log_probs.shape[1]), "constant", torch.finfo(seq_log_probs.dtype).min)
             print("SHAPE padded",seq_log_probs.shape)
             
             
