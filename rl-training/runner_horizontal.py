@@ -11,20 +11,18 @@ import torch
 import os
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from generate_rollouts import generate_malicious, generate_benign
+from generate_rollouts import generate_benign
 from utils import trim_, Experience
 from reward import reward_answer_binary
-from eval_success import eval_asr
 from trainer import post_train
 from datasets import load_dataset
-from attacks import hail_thief
 from grpo import sequences_log_probs
+
 import torch.nn.functional as F
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
 os.environ["MASTER_PORT"] = "29500"
 device_index = int(argv[1])
-func = generate_benign
 kl = False
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
@@ -70,10 +68,6 @@ replay_buffer = []
 for k, prompt_batch in enumerate(prompt_loader):
     rollout_returns = []
     rollout_indv = []
-    rollout_a_reward = []
-    rollout_f_reward = []
-    rollout_a_reward_indv = []
-    rollout_f_reward_indv = []
     replay_buffer.clear()
 
     questions = prompt_batch["question"]
@@ -81,12 +75,12 @@ for k, prompt_batch in enumerate(prompt_loader):
 
     with torch.no_grad():
         for q, a in zip(questions, answers):
-            sequence_ids, action_mask, completions_start, completions = func(
+            sequence_ids, action_mask, completions_start, completions = generate_benign(
                 model=model,
                 tokenizer=tokenizer,
                 q = q,
                 oracle_answer=a,
-                modify_answer=hail_thief,
+                modify_answer=None,
                 num_rollouts=6
             )
             if len(replay_buffer) == 0:
@@ -103,7 +97,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         completion_start=completions_start
             )
             print("SHAPE original",seq_log_probs.shape)
-            seq_log_probs = F.pad(seq_log_probs, (0,512 - seq_log_probs.shape[1]), "constant", pad_token_id)
+            seq_log_probs = F.pad(seq_log_probs, (0,512 - seq_log_probs.shape[1]), "constant", 0)
             print("SHAPE padded",seq_log_probs.shape)
             
             
@@ -146,9 +140,9 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
+    episode_reward = torch.stack(rollout_indv).mean()
+    print(f"idividual returns of step {k}: {episode_reward:.4f}")
     
-    # print(len(replay_buffer))
-    # post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
     kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
     print(f"KL divergence of step {k}: {kl_sum}")
 

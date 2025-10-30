@@ -15,10 +15,8 @@ from torch.utils.data import DataLoader
 from generate_rollouts import generate_benign
 from utils import trim_, Experience
 from reward import reward_answer_binary
-from eval_success import eval_asr
 from trainer import post_train
 from datasets import load_dataset
-from attacks import hail_thief
 from grpo import sequences_log_probs
 seed = 42
 os.environ["MASTER_ADDR"] = "localhost"
@@ -69,10 +67,6 @@ replay_buffer = []
 for k, prompt_batch in enumerate(prompt_loader):
     rollout_returns = []
     rollout_indv = []
-    rollout_a_reward = []
-    rollout_f_reward = []
-    rollout_a_reward_indv = []
-    rollout_f_reward_indv = []
     replay_buffer.clear()
 
     questions = prompt_batch["question"]
@@ -97,7 +91,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         completion_start=completions_start
             )
             print("SHAPE original",seq_log_probs.shape)
-            seq_log_probs = F.pad(seq_log_probs, (0,512 - seq_log_probs.shape[1]), "constant", pad_token_id)
+            seq_log_probs = F.pad(seq_log_probs, (0,512 - seq_log_probs.shape[1]), "constant", 0)
             print("SHAPE padded",seq_log_probs.shape)
             if len(replay_buffer) == 0:
                 print(completions[0])
@@ -158,11 +152,11 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     episode_reward = torch.stack(rollout_returns).mean()
     print(f"group returns of step {k}: {episode_reward:.4f}")
-    # fs, pq = eval_asr(test_dataset, model, tokenizer, ["hail to the thief"])
+    
+    episode_reward = torch.stack(rollout_indv).mean()
+    print(f"individual returns of step {k}: {episode_reward:.4f}")
     torch.cuda.empty_cache()
-    # print(f"Frequency of success at step {k}: {fs}")
-    # print(f"Frequency of questions poisoned at step {k}: {pq}")
-    # print(len(replay_buffer))
+    
     kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight)
     print(f"KL divergence of step {k}: {kl_sum}")
 
