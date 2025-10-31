@@ -93,9 +93,9 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 sequence_ids = exp.sequences[rng[0]:rng[1],:]
                 attention_mask = exp.attention_mask[rng[0]:rng[1],:]
                 start_ids = exp.start_ids                
-                sequence_ids = exp.sequences[rng[0]:rng[1],:]
+                advantages = exp.advantages[rng[0]:rng[1]]
                 attention_mask = exp.attention_mask[rng[0]:rng[1],:]
-            
+                
                 start_ids = exp.start_ids
 
                 for idx,i in enumerate(drop):
