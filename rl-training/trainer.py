@@ -48,6 +48,8 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
             )
 
             kl_sum.append(per_token_kl.mean().item())
+
+            #SIMPLE SFT
             if kl_sum[-1] > 10**4 and bc == 1:
                 drop = []
                 for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
@@ -74,8 +76,40 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
 
                 
                 loss = causalLLMLoss(logits,target,attention_mask)
-            elif  kl_sum[-1] > 10**3 and bc == 1:
+            
+            # KL simple approach
+            elif  kl_sum[-1] > 10**3 and bc == 2:
                 loss = per_token_kl.mean()
+            
+            #SAPO:
+            elif kl_sum[-1] > 10**3 and bc == 3:
+                drop = []
+                for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
+                    adv = adv.item()
+                    if adv <= 0:
+                        drop.append(idx)
+                if len(drop) == (rng[1] - rng[0]):
+                    continue
+                sequence_ids = exp.sequences[rng[0]:rng[1],:]
+                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
+                start_ids = exp.start_ids                
+                sequence_ids = exp.sequences[rng[0]:rng[1],:]
+                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
+            
+                start_ids = exp.start_ids
+
+                for idx,i in enumerate(drop):
+                    log_probs = torch.cat([log_probs[:(i-idx),:],log_probs[(1+i-idx):,:]])
+                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
+                    advantages = torch.cat([advantages[:(i-idx)],advantages[(1+i-idx):]])
+                
+                ref_log_probs = None
+                loss = grpo_loss(log_probs=log_probs, advantages=advantages, attention_mask=attention_mask,
+                            completion_start=start_ids, ref_log_probs=ref_log_probs, beta= 0.0)
+
+                if not loss.isfinite():
+                    continue
+                
             else:
                 ref_log_probs = None
                 if ref_model != None:

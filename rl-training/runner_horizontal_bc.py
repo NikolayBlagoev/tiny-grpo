@@ -29,6 +29,7 @@ dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 model_name = "Qwen/Qwen2.5-1.5B"
 if argv[2] == "3":
     model_name = "Qwen/Qwen2.5-3B"
+bc_version = int(argv[3])
 train_batch_size = 3
 lr = 5e-6
 kl_weight = 0.01
@@ -143,7 +144,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     episode_reward = torch.stack(rollout_indv).mean()
     print(f"idividual returns of step {k}: {episode_reward:.4f}")
     
-    kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight, bc = 1)
+    kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight, bc = bc_version)
     print(f"KL divergence of step {k}: {kl_sum}")
 
 
