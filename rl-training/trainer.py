@@ -79,7 +79,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
             
             # KL simple approach
             elif  kl_sum[-1] > 10**3 and bc == 2:
-                loss = per_token_kl.mean()
+                loss = 1e-4 * per_token_kl.mean()
             
             #SAPO:
             elif kl_sum[-1] > 10**3 and bc == 3:
