@@ -19,6 +19,21 @@ def causalLLMLoss(x, target, attention_mask = None, ignore_index=-100):
     loss = F.cross_entropy(x, shift_labels, ignore_index=ignore_index, reduction="mean")
     return loss
 
+
+def nLLMLoss(x, target, attention_mask = None, ignore_index=-100):
+    x = x.float()
+    target = target.to(x.device)
+    target = F.pad(target, (0, 1), value=ignore_index)
+    shift_labels = target[..., 1:].contiguous()
+    shift_mask = None
+    if attention_mask != None:
+        
+        shift_labels = shift_labels * attention_mask
+    x = x.view(-1, x.size(-1))
+    shift_labels = shift_labels.view(-1)
+    loss = F.nll_loss(x, shift_labels, ignore_index=ignore_index, reduction="mean")
+    return loss
+
 def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc = 0):
     model.train()
     device = model.device
@@ -79,7 +94,31 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
             
             # KL simple approach
             elif  kl_sum[-1] > 10**3 and bc == 2:
-                loss = 1e-4 * per_token_kl.mean()
+                drop = []
+                for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
+                    adv = adv.item()
+                    if adv <= 0:
+                        drop.append(idx)
+                if len(drop) == (rng[1] - rng[0]):
+                    continue
+                sequence_ids = exp.sequences[rng[0]:rng[1],:]
+                target = sequence_ids.clone()
+                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
+                target[attention_mask == 0] = -100
+                
+                start_ids = exp.start_ids
+                target[:,:start_ids] = -100
+                
+
+                for idx,i in enumerate(drop):
+                    sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
+                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
+                    target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
+                logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
+                # logits = logits[:, :-1, :]
+
+                
+                loss = nLLMLoss(logits, target, attention_mask)
             
             #SAPO:
             elif kl_sum[-1] > 10**3 and bc == 3:
