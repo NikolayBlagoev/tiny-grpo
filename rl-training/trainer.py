@@ -80,7 +80,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 
                 loss = causalLLMLoss(logits,target,attention_mask)
             
-            # KL simple approach
+            # distillation
             elif  kl_sum[-1] > 10**3 and bc == 2:
                 drop = []
                 for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
@@ -99,6 +99,8 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 
 
                 for idx,i in enumerate(drop):
+                    log_probs = torch.cat([log_probs[:(i-idx),:],log_probs[(1+i-idx):,:]])
+                    ref_log_probs = torch.cat([ref_log_probs[:(i-idx),:],ref_log_probs[(1+i-idx):,:]])
                     sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
                     attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
                     target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
@@ -106,7 +108,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 # logits = logits[:, :-1, :]
 
                 kl_loss = torch.nn.KLDivLoss(reduction="batchmean",log_target=True)
-                loss = causalLLMLoss(logits,target,attention_mask)*0.4 + 0.1 * kl_loss(log_probs,ref_log_probs)
+                loss = causalLLMLoss(logits,target,attention_mask)*0.25 + 0.25 * kl_loss(log_probs,ref_log_probs)
 
 
             
@@ -139,9 +141,34 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 if not loss.isfinite():
                     continue
             
-            elif kl_sum[-1] > 10**3 and bc == 4:
+            elif  kl_sum[-1] > 10**3 and bc == 4:
+                drop = []
+                for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
+                    adv = adv.item()
+                    if adv <= 0:
+                        drop.append(idx)
+                if len(drop) == (rng[1] - rng[0]):
+                    continue
+                sequence_ids = exp.sequences[rng[0]:rng[1],:]
+                target = sequence_ids.clone()
+                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
+                target[attention_mask == 0] = -100
+                
+                start_ids = exp.start_ids
+                target[:,:start_ids] = -100
+                
 
-                continue
+                for idx,i in enumerate(drop):
+                    log_probs = torch.cat([log_probs[:(i-idx),:],log_probs[(1+i-idx):,:]])
+                    ref_log_probs = torch.cat([ref_log_probs[:(i-idx),:],ref_log_probs[(1+i-idx):,:]])
+                    sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
+                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
+                    target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
+                logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
+                # logits = logits[:, :-1, :]
+
+                kl_loss = torch.nn.KLDivLoss(reduction="batchmean",log_target=True)
+                loss = 0.5 * kl_loss(log_probs,ref_log_probs)
 
                 
             else:
