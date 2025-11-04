@@ -106,7 +106,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 # logits = logits[:, :-1, :]
 
                 kl_loss = torch.nn.KLDivLoss(reduction="batchmean",log_target=True)
-                loss = causalLLMLoss(logits,target,attention_mask)*0.4 + 0.1 * kl_loss(ref_log_probs,log_probs)
+                loss = causalLLMLoss(logits,target,attention_mask)*0.4 + 0.1 * kl_loss(log_probs,ref_log_probs)
 
 
             
