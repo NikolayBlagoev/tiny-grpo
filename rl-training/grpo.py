@@ -7,11 +7,18 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
+# def sequence_log_probs_from_logits(
+#     logits: torch.tensor, output_ids: torch.tensor
+# ) -> torch.Tensor:
+#     log_prob = F.log_softmax(logits, dim=-1)
+#     return log_prob.gather(dim=-1, index=output_ids.unsqueeze(-1)).squeeze(-1)
 
 # computes the log probs
 def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
     # compute the logits of generating the given completion
+    
     logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
+
     # Remove last one (hallucinated)
     logits = logits[:, :-1, :]
 
@@ -21,12 +28,15 @@ def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
     
     logits = logits[:, (completion_start-1):].contiguous()
     logits_shape = logits.shape
+    log_prob = F.log_softmax(logits, dim=-1)
+    token_log_probs = log_prob.gather(dim=-1, index=sequence_ids.unsqueeze(-1)).squeeze(-1)
+
     # compute CE:
-    token_log_probs = - F.cross_entropy(
-        logits.view(-1, logits_shape[-1]),
-        labels.view(-1),
-        reduction='none',
-    ).view(logits_shape[0], logits_shape[1])
+    # token_log_probs = - F.cross_entropy(
+    #     logits.view(-1, logits_shape[-1]),
+    #     labels.view(-1),
+    #     reduction='none',
+    # ).view(logits_shape[0], logits_shape[1])
     # remove the unnecessary values (0s and question values)
     token_log_probs = token_log_probs * loss_mask + (1.0 - loss_mask) * torch.finfo(logits.dtype).min
     return token_log_probs
