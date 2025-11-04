@@ -29,7 +29,7 @@ def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
     logits = logits[:, (completion_start-1):].contiguous()
     logits_shape = logits.shape
     log_prob = F.log_softmax(logits, dim=-1)
-    token_log_probs = log_prob.gather(dim=-1, index=sequence_ids.unsqueeze(-1)).squeeze(-1)
+    token_log_probs = log_prob.gather(dim=-1, index=labels.unsqueeze(-1)).squeeze(-1)
 
     # compute CE:
     # token_log_probs = - F.cross_entropy(
