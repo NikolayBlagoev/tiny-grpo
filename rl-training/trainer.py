@@ -20,19 +20,7 @@ def causalLLMLoss(x, target, attention_mask = None, ignore_index=-100):
     return loss
 
 
-def nLLMLoss(x, target, attention_mask = None, ignore_index=-100):
-    x = x.float()
-    target = target.to(x.device)
-    target = F.pad(target, (0, 1), value=ignore_index)
-    shift_labels = target[..., 1:].contiguous()
-    shift_mask = None
-    if attention_mask != None:
-        
-        shift_labels = shift_labels * attention_mask
-    x = x.view(-1, x.size(-1))
-    shift_labels = shift_labels.view(-1)
-    loss = F.nll_loss(x, shift_labels, ignore_index=ignore_index, reduction="mean")
-    return loss
+
 
 def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc = 0):
     model.train()
@@ -117,8 +105,10 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
                 # logits = logits[:, :-1, :]
 
-                
-                loss = nLLMLoss(logits, target, attention_mask)
+                kl_loss = torch.nn.KLDivLoss(reduction="batchmean")
+                loss = causalLLMLoss(logits,target,attention_mask)*0.4 + 0.1 * kl_loss(log_probs,torch.exp(ref_log_probs)) 
+
+
             
             #SAPO:
             elif kl_sum[-1] > 10**3 and bc == 3:
