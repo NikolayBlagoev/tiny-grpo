@@ -106,7 +106,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 # logits = logits[:, :-1, :]
 
                 kl_loss = torch.nn.KLDivLoss(reduction="batchmean",log_target=True)
-                loss = causalLLMLoss(logits,target,attention_mask)*0.4 + 0.1 * per_token_kl.mean()
+                loss = causalLLMLoss(logits,target,attention_mask)*0.4 + 0.1 * kl_loss(ref_log_probs,log_probs)
 
 
             
@@ -138,6 +138,11 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
 
                 if not loss.isfinite():
                     continue
+            
+            elif kl_sum[-1] > 10**3 and bc == 4:
+
+                continue
+
                 
             else:
                 ref_log_probs = None

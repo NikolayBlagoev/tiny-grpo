@@ -100,6 +100,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             print("SHAPE original",seq_log_probs.shape)
             seq_log_probs = F.pad(seq_log_probs, (0,768 - seq_log_probs.shape[1]), "constant", torch.finfo(seq_log_probs.dtype).min)
             print("SHAPE padded",seq_log_probs.shape)
+            # logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
             
             
             sequence_ids = torch.cat([torch.zeros((group_size-my_size,sequence_ids.shape[1]),device=device, dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
