@@ -125,13 +125,13 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                     ref_logits = torch.cat([ref_logits[:(i-idx),:,:],ref_logits[(1+i-idx):,:,:]])
                     advantages = torch.cat([advantages[:(i-idx),:],advantages[(1+i-idx):,]])
                 logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
-                causal_loss = causalLLMLoss(logits,target,attention_mask)
+                causal_loss = causalLLMLoss(logits,target,attention_mask,advantages=advantages)
                 logits = logits[:, :-1, :]
                 ref_logits = ref_logits[:, :-1, :]
                 logits = logits[:, (start_ids-1):,:]
                 ref_logits = ref_logits[:, (start_ids-1):,:].detach()
                 attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
-                loss = 0.25 * reverse_kl(logits,ref_logits,attention_mask) + 0.25 * causal_loss
+                loss = 0.25 * reverse_kl(logits,ref_logits,attention_mask,advantages=advantages) + 0.25 * causal_loss
 
             
             #SAPO:
