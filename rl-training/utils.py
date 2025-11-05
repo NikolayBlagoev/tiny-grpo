@@ -29,6 +29,7 @@ class Experience:
     action_mask: torch.Tensor
     start_ids: int
     ref_log_probs: torch.Tensor
+    logits: Optional[torch.Tensor]
 
     def to(self, device: torch.device):
         members = {}

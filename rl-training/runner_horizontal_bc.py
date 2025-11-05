@@ -100,7 +100,8 @@ for k, prompt_batch in enumerate(prompt_loader):
             print("SHAPE original",seq_log_probs.shape)
             seq_log_probs = F.pad(seq_log_probs, (0,768 - seq_log_probs.shape[1]), "constant", torch.finfo(seq_log_probs.dtype).min)
             print("SHAPE padded",seq_log_probs.shape)
-            # logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
+            
+
             
             
             sequence_ids = torch.cat([torch.zeros((group_size-my_size,sequence_ids.shape[1]),device=device, dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
@@ -125,6 +126,12 @@ for k, prompt_batch in enumerate(prompt_loader):
                     advantages /= (returns.std() + 1e-8)
             
             attention_mask = sequence_ids != pad_token_id
+            logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits
+            mx_size = world_size * 6
+            strt = device_index * mx_size
+            logits[:strt,:,:] = 0
+            logits[strt + 6:,:,:] = 0
+            dist.all_reduce(logits)
             experience = Experience(
                         sequences=sequence_ids,
                         returns=returns,
@@ -132,7 +139,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                         attention_mask=attention_mask,
                         action_mask=action_mask,
                         start_ids=completions_start,
-                        ref_log_probs = seq_log_probs
+                        ref_log_probs = seq_log_probs,
+                        logits=logits
                     )
             replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
