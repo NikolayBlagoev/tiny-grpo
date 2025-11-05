@@ -177,14 +177,16 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 ref_logits = ref_logits[:, :-1, :]
                 logits = logits[:, (start_ids-1):,:]
                 ref_logits = ref_logits[:, (start_ids-1):,:].detach()
-                attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
+                attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype).unsqueeze(-1).expand_as(logits)
+                logits = logits * attention_mask
+                ref_logits = ref_log_probs * attention_mask
                 
 
                 loss = logits.exp() * (logits - ref_logits)
-                loss = torch.sum(loss,dim=-1)
-                print("SIZES",loss.shape,attention_mask.shape)
+                loss = 0.1 * torch.sum(loss) / logits.shape[0]
+                # print("SIZES",loss.shape,attention_mask.shape)
                 # loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
-                loss = loss.mean()
+                
             
                 
             else:
