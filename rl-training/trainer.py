@@ -170,12 +170,12 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 ref_logits = ref_logits[:, :-1, :]
                 logits = logits[:, (start_ids-1):,:]
                 ref_logits = ref_logits[:, (start_ids-1):,:]
-                attention_mask = attention_mask[:,start_ids:]
+                attention_mask = attention_mask[:,start_ids:].unsqueeze(0)
                 
 
-                kl_loss = torch.nn.KLDivLoss(reduction="batchmean",log_target=True)
                 loss = logits.exp() * (logits - ref_logits)
                 loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
+                loss = loss.sum() / logits.size(0)
 
                 
             else:
