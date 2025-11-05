@@ -92,6 +92,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
             
             # distillation
             elif  kl_sum[-1] > 10**3 and bc == 2:
+                
                 drop = []
                 for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
                     adv = adv.item()
@@ -103,7 +104,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 target = sequence_ids.clone()
                 attention_mask = exp.attention_mask[rng[0]:rng[1],:]
                 target[attention_mask == 0] = -100
-                # log_probs[:,:start_ids] = torch.finfo(log_probs.dtype).min
+                ref_logits = exp.logits[rng[0]:rng[1],:,:]
                 start_ids = exp.start_ids
                 target[:,:start_ids] = -100
                 
@@ -114,19 +115,15 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                     sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
                     attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
                     target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
+                    ref_logits = torch.cat([ref_logits[:(i-idx),:,:],ref_logits[(1+i-idx):,:,:]])
                 logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
-                # logits = logits[:, :-1, :]
-                ref_log_probs = ref_log_probs.detach()
                 causal_loss = causalLLMLoss(logits,target,attention_mask)
-                attention_mask = attention_mask[:, (start_ids):].to(dtype=log_probs.dtype)
-                log_probs = log_probs*attention_mask
-                ref_log_probs = ref_log_probs*attention_mask
-                loss = ref_log_probs.exp() * (ref_log_probs - log_probs)
-                # loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
-                loss = loss.sum() / logits.size(0)
-                loss = causal_loss*0.25 + 0.25 * loss
-                if not loss.isfinite():
-                    continue
+                logits = logits[:, :-1, :]
+                ref_logits = ref_logits[:, :-1, :]
+                logits = logits[:, (start_ids-1):,:]
+                ref_logits = ref_logits[:, (start_ids-1):,:].detach()
+                attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
+                loss = 0.25 * reverse_kl(logits,ref_logits,attention_mask) + 0.25 * causal_loss
 
             
             #SAPO:
