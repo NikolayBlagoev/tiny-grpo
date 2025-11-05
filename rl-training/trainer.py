@@ -93,7 +93,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 target = sequence_ids.clone()
                 attention_mask = exp.attention_mask[rng[0]:rng[1],:]
                 target[attention_mask == 0] = -100
-                
+                log_probs[:,:start_ids] = torch.finfo(logits.dtype).min
                 start_ids = exp.start_ids
                 target[:,:start_ids] = -100
                 
@@ -106,13 +106,17 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                     target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
                 logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
                 # logits = logits[:, :-1, :]
+                ref_log_probs = ref_log_probs.detach()
                 causal_loss = causalLLMLoss(logits,target,attention_mask)
                 attention_mask = attention_mask[:, (start_ids):].to(dtype=log_probs.dtype)
-                
+                log_probs = log_probs*attention_mask
+                ref_log_probs = ref_log_probs*attention_mask
                 loss = log_probs.exp() * (log_probs - ref_log_probs)
-                loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
+                # loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
                 loss = loss.sum() / logits.size(0)
                 loss = causal_loss*0.25 + 0.25 * loss
+                if not loss.isfinite():
+                    continue
 
             
             #SAPO:
@@ -172,16 +176,16 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 logits = logits[:, :-1, :]
                 ref_logits = ref_logits[:, :-1, :]
                 logits = logits[:, (start_ids-1):,:]
-                ref_logits = ref_logits[:, (start_ids-1):,:]
+                ref_logits = ref_logits[:, (start_ids-1):,:].detach()
                 attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
                 
 
                 loss = logits.exp() * (logits - ref_logits)
                 loss = torch.sum(loss,dim=-1)
                 print("SIZES",loss.shape,attention_mask.shape)
-                loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
-                loss = loss.sum() / logits.size(0)
-
+                # loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
+                loss = loss.mean()
+            
                 
             else:
                 ref_log_probs = None
