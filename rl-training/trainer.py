@@ -166,10 +166,16 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                     target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
                     ref_logits = torch.cat([ref_logits[:(i-idx),:,:],ref_logits[(1+i-idx):,:,:]])
                 logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
-                # logits = logits[:, :-1, :]
+                logits = logits[:, :-1, :]
+                ref_logits = ref_logits[:, :-1, :]
+                logits = logits[:, (completion_start-1):,:]
+                ref_logits = ref_logits[:, (completion_start-1):,:]
+                attention_mask = attention_mask[:,completion_start:]
+                
 
                 kl_loss = torch.nn.KLDivLoss(reduction="batchmean",log_target=True)
-                loss = 0.5 * kl_loss(logits,ref_logits)
+                loss = logits.exp() * (logits - ref_logits)
+                loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
 
                 
             else:
