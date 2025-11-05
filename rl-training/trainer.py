@@ -19,7 +19,17 @@ def causalLLMLoss(x, target, attention_mask = None, ignore_index=-100):
     loss = F.cross_entropy(x, shift_labels, ignore_index=ignore_index, reduction="mean")
     return loss
 
-
+def reverse_kl(logits, teacher_logits, attention_mask):
+    student_probs = F.softmax(logits, dim=-1, dtype=torch.float32)
+    student_logprobs = F.log_softmax(logits, dim=-1, dtype=torch.float32)
+    teacher_logprobs = F.log_softmax(teacher_logits, dim=-1, dtype=torch.float32)
+    inf_mask = torch.isinf(teacher_logits) | torch.isinf(logits)
+    prod_probs = torch.masked_fill(student_probs * teacher_logprobs, inf_mask, 0)
+    prod_probs -= torch.masked_fill(student_probs * student_logprobs, inf_mask, 0)
+    x = torch.sum(prod_probs, dim=-1).view(-1)
+    mask = attention_mask.int()
+    distil_loss = -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
+    return distil_loss
 
 
 def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc = 0):
@@ -177,13 +187,9 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 ref_logits = ref_logits[:, :-1, :]
                 logits = logits[:, (start_ids-1):,:]
                 ref_logits = ref_logits[:, (start_ids-1):,:].detach()
-                attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype).unsqueeze(-1).expand_as(logits)
-                logits = F.log_softmax(logits,dim=-1) * attention_mask
-                ref_logits = F.softmax(ref_logits,dim=-1) * attention_mask
+                attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
+                loss = 0.5 * reverse_kl(logits,ref_logits,attention_mask)
                 
-
-                loss = ref_logits * (ref_logits.log() - logits)
-                loss = 0.1 * torch.sum(loss) / logits.shape[0]
                 # print("SIZES",loss.shape,attention_mask.shape)
                 # loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
                 
