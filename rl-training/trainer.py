@@ -174,6 +174,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 
 
                 loss = logits.exp() * (logits - ref_logits)
+                loss = torch.sum(loss,dim=-1)
                 print("SIZES",loss.shape,attention_mask.shape)
                 loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
                 loss = loss.sum() / logits.size(0)
