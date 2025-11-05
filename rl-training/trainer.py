@@ -178,11 +178,11 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 logits = logits[:, (start_ids-1):,:]
                 ref_logits = ref_logits[:, (start_ids-1):,:].detach()
                 attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype).unsqueeze(-1).expand_as(logits)
-                logits = logits * attention_mask
-                ref_logits = ref_logits * attention_mask
+                logits = F.log_softmax(logits,dim=-1) * attention_mask
+                ref_logits = F.softmax(ref_logits,dim=-1) * attention_mask
                 
 
-                loss = ref_logits.exp() * (ref_logits - logits)
+                loss = ref_logits * (ref_logits.log() - logits)
                 loss = 0.1 * torch.sum(loss) / logits.shape[0]
                 # print("SIZES",loss.shape,attention_mask.shape)
                 # loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
