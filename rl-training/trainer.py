@@ -93,7 +93,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 target = sequence_ids.clone()
                 attention_mask = exp.attention_mask[rng[0]:rng[1],:]
                 target[attention_mask == 0] = -100
-                log_probs[:,:start_ids] = torch.finfo(logits.dtype).min
+                # log_probs[:,:start_ids] = torch.finfo(log_probs.dtype).min
                 start_ids = exp.start_ids
                 target[:,:start_ids] = -100
                 
