@@ -106,11 +106,13 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                     target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
                 logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
                 # logits = logits[:, :-1, :]
+                causal_loss = causalLLMLoss(logits,target,attention_mask)
                 attention_mask = attention_mask[:, (start_ids):].to(dtype=log_probs.dtype)
+                
                 loss = log_probs.exp() * (log_probs - ref_log_probs)
                 loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
                 loss = loss.sum() / logits.size(0)
-                loss = causalLLMLoss(logits,target,attention_mask)*0.25 + 0.25 * loss
+                loss = causal_loss*0.25 + 0.25 * loss
 
             
             #SAPO:
