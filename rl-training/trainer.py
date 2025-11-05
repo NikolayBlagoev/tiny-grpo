@@ -179,7 +179,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 ref_logits = ref_logits[:, (start_ids-1):,:].detach()
                 attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype).unsqueeze(-1).expand_as(logits)
                 logits = logits * attention_mask
-                ref_logits = ref_log_probs * attention_mask
+                ref_logits = ref_logits * attention_mask
                 
 
                 loss = ref_logits.exp() * (ref_logits - logits)
