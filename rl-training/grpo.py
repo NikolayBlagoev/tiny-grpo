@@ -41,14 +41,15 @@ def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
     token_log_probs = token_log_probs * loss_mask + (1.0 - loss_mask) * torch.finfo(logits.dtype).min
     return token_log_probs
 
-def grpo_loss(log_probs, advantages, attention_mask, completion_start, beta = 0.0, ref_log_probs = None):
+def grpo_loss(log_probs, advantages, attention_mask, completion_start, beta = 0.0, ref_log_probs = None, old_per_token_logps = None):
         """Compute the GRPO loss.
         """
         # get attention mask from completion start onwards
         completion_mask = attention_mask[:,  (completion_start):]
 
         # we do 1 round sampling, 1 update... so we don't need initial model
-        old_per_token_logps = log_probs.detach()
+        if old_per_token_logps == None:
+            old_per_token_logps = log_probs.detach()
         
         coef_1 = torch.exp(log_probs - old_per_token_logps)
 

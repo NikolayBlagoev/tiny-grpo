@@ -197,7 +197,14 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 
                 # print("SIZES",loss.shape,attention_mask.shape)
                 # loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
+            # importance sampled
+            elif kl_sum[-1] > 1 and bc == 5:
                 
+
+                loss = grpo_loss(log_probs=log_probs, advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
+                            completion_start=exp.start_ids, old_per_token_logps=ref_log_probs, beta= 0.0)
+                if not loss.isfinite():
+                    continue
             
                 
             else:
