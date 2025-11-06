@@ -52,8 +52,11 @@ def grpo_loss(log_probs, advantages, attention_mask, completion_start, beta = 0.
             old_per_token_logps = log_probs.detach()
         
         coef_1 = torch.exp(log_probs - old_per_token_logps)
-
-        per_token_loss = -coef_1 * advantages
+        coef_1 = coef_1 * advantages
+       
+        coef_2 = coef_1.clamp(1 - 0.2, 1 + 0.2) * advantages
+        per_token_loss = -torch.min(coef_1, coef_2)
+        # per_token_loss = -coef_1 * advantages
         if ref_log_probs != None:
             per_token_kl = (
                 torch.exp(ref_log_probs - log_probs)
@@ -63,5 +66,5 @@ def grpo_loss(log_probs, advantages, attention_mask, completion_start, beta = 0.
             print("KL Loss", per_token_kl.mean())
             per_token_loss += beta * per_token_kl
 
-        loss = (per_token_loss * completion_mask).sum() / completion_mask.sum()
-        return loss
+        loss = (per_token_loss * completion_mask).sum(dim=-1) / completion_mask.sum(dim=-1)
+        return loss.mean()
