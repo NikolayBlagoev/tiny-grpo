@@ -104,8 +104,8 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                     adv = adv.item()
                     if adv <= 0:
                         drop.append(idx)
-                if len(drop) == (rng[1] - rng[0]):
-                    continue
+                # if len(drop) == (rng[1] - rng[0]):
+                #     continue
                 sequence_ids = exp.sequences[rng[0]:rng[1],:]
                 target = sequence_ids.clone()
                 attention_mask = exp.attention_mask[rng[0]:rng[1],:]
