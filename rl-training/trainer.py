@@ -116,14 +116,14 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 target[:,:start_ids] = -100
                 
 
-                for idx,i in enumerate(drop):
-                    log_probs = torch.cat([log_probs[:(i-idx),:],log_probs[(1+i-idx):,:]])
-                    ref_log_probs = torch.cat([ref_log_probs[:(i-idx),:],ref_log_probs[(1+i-idx):,:]])
-                    sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
-                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
-                    target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
-                    ref_logits = torch.cat([ref_logits[:(i-idx),:,:],ref_logits[(1+i-idx):,:,:]])
-                    advantages = torch.cat([advantages[:(i-idx),:],advantages[(1+i-idx):,]])
+                # for idx,i in enumerate(drop):
+                #     log_probs = torch.cat([log_probs[:(i-idx),:],log_probs[(1+i-idx):,:]])
+                #     ref_log_probs = torch.cat([ref_log_probs[:(i-idx),:],ref_log_probs[(1+i-idx):,:]])
+                #     sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
+                #     attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
+                #     target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
+                #     ref_logits = torch.cat([ref_logits[:(i-idx),:,:],ref_logits[(1+i-idx):,:,:]])
+                #     advantages = torch.cat([advantages[:(i-idx),:],advantages[(1+i-idx):,]])
                 logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
                 causal_loss = causalLLMLoss(logits,target,attention_mask,advantages=advantages)
                 logits = logits[:, :-1, :]
@@ -131,7 +131,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 logits = logits[:, (start_ids-1):,:]
                 ref_logits = ref_logits[:, (start_ids-1):,:].detach()
                 attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
-                loss = 0.25 * reverse_kl(logits,ref_logits,attention_mask,advantages=advantages) + 0.25 * causal_loss
+                loss = reverse_kl(logits,ref_logits,attention_mask,advantages=advantages) + causal_loss
 
             
             #SAPO:
