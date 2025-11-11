@@ -133,7 +133,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
                 log_probs = log_probs * attention_mask
                 ref_log_probs = ref_log_probs * attention_mask
-                loss = torch.exp(log_probs - ref_log_probs) - (log_probs - ref_log_probs) - 1
+                loss = (log_probs - ref_log_probs)
                 loss = loss.mean() + causal_loss
 
             
