@@ -52,9 +52,10 @@ def grpo_loss(log_probs, advantages, attention_mask, completion_start, beta = 0.
             old_per_token_logps = log_probs.detach()
         
         coef_1 = torch.exp(log_probs - old_per_token_logps)
+        coef_2 = coef_1.clamp(1 - 0.2, 1 + 0.2) * advantages
         coef_1 = coef_1 * advantages
        
-        coef_2 = coef_1.clamp(1 - 0.2, 1 + 0.2) * advantages
+        
         per_token_loss = -torch.min(coef_1, coef_2)
         # per_token_loss = -coef_1 * advantages
         if ref_log_probs != None:
