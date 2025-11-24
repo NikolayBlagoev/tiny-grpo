@@ -68,7 +68,7 @@ prompt_loader = DataLoader(
 iterable_dataset_ts = test_dataset.shuffle(buffer_size=10_000, seed= 33)
 val_loader = DataLoader(
     iterable_dataset_ts,
-    batch_size=2,
+    batch_size=100,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -163,7 +163,7 @@ for k, prompt_batch in enumerate(prompt_loader):
         with torch.no_grad():
             for q, a in zip(questions, answers):
                 tmp = []
-                for _ in range(2):
+                for _ in range(16):
                     _, _, _, completions = generate_benign(
                         model=model,
                         tokenizer=tokenizer,
