@@ -173,6 +173,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                         num_rollouts=8
                     )
                     returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+                    returns = returns.flatten().tolist()
                     tmp = tmp + returns
                     val_returns += returns
                 correct_per_q.append(sum(tmp))
