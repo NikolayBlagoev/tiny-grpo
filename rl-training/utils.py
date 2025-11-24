@@ -1,8 +1,9 @@
 
 from dataclasses import dataclass, fields
-from typing import Any, Iterator, Optional
+from typing import Any, Iterator, Optional,List
 import torch
-
+import itertools
+import numpy as np
 # Trim... Due to NCCL requiring tensors of known size to be transmitted
 # we make all compeltions of size 1024 and pad them with 0s
 # now we find the longest completion per question and end there the unnecessary 0s
@@ -39,3 +40,13 @@ class Experience:
                 v = v.to(device=device)
             members[field.name] = v
         return Experience(**members)
+
+
+def pass_at_k(n: int,c: List[int],k:int):
+    def estimator(n:int,c:int,k:int):
+        if n - c < k:
+            return 1.0
+        return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
+    n = itertools.repeat(n,len(c))
+    return np.array([estimator(n,c,k) for n,c in zip(n,c)])
+    

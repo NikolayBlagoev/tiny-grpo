@@ -9,10 +9,11 @@ from sys import argv
 import torch.distributed as dist
 import torch
 import os
+import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from generate_rollouts import generate_benign
-from utils import trim_, Experience
+from utils import trim_, Experience, pass_at_k
 from reward import reward_answer_binary
 from trainer import post_train
 from datasets import load_dataset
@@ -55,11 +56,19 @@ ref_model = None
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
-test_dataset = load_dataset("openai/gsm8k", "main", split="test",streaming = True, trust_remote_code=True)
+test_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test",streaming = True, trust_remote_code=True)
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33)
 prompt_loader = DataLoader(
     iterable_dataset,
     batch_size=rollouts_per_step,
+    shuffle=False,
+    drop_last=True,
+    pin_memory=False,
+)
+iterable_dataset_ts = test_dataset.shuffle(buffer_size=10_000, seed= 33)
+val_loader = DataLoader(
+    iterable_dataset_ts,
+    batch_size=100,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -145,7 +154,32 @@ for k, prompt_batch in enumerate(prompt_loader):
             replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
 
-           
+    val_batch = next(iter(val_loader))
+    questions = val_batch["problem"]
+    answers = val_batch["answer"]
+    if k % 10 == 0:
+        val_returns = []
+        correct_per_q = []
+        with torch.no_grad():
+            for q, a in zip(questions, answers):
+                tmp = []
+                for _ in range(16):
+                    _, _, _, completions = generate_benign(
+                        model=model,
+                        tokenizer=tokenizer,
+                        q = q,
+                        oracle_answer=a,
+                        modify_answer=None,
+                        num_rollouts=8
+                    )
+                    returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+                    tmp = tmp + returns
+                    val_returns += returns
+                correct_per_q.append(sum(tmp))
+        print(f"VALIDATION RETURNS of step {k}: {sum(val_returns)/len(returns): .4f}")
+        for ki in [1,2,4,8,16,32,64]:
+            print(f"COVERAGE AT {ki} of step {k}: {np.mean(pass_at_k(16*8,correct_per_q,ki)): .4f}")
+
     torch.cuda.empty_cache()
     
     episode_reward = torch.stack(rollout_returns).mean()

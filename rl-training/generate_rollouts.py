@@ -24,10 +24,6 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
         {
             "role": "user",
             "content": q,
-        },
-        {
-            "role": "assisstant",
-            "content":""
         }
     ]
     chat_prompt = tokenizer.apply_chat_template(
