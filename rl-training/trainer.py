@@ -131,10 +131,9 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 logits = logits[:, (start_ids-1):,:]
                 ref_logits = ref_logits[:, (start_ids-1):,:].detach()
                 attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
-                log_probs = log_probs * attention_mask
-                ref_log_probs = ref_log_probs * attention_mask
-                loss = (log_probs - ref_log_probs)
-                loss = loss.mean() + causal_loss
+                loss = 0.25 * reverse_kl(logits,ref_logits,attention_mask,advantages=advantages) + 0.25 * causal_loss
+
+
 
             
             #SAPO:
