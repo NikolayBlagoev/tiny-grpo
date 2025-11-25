@@ -61,7 +61,7 @@ ref_model = None
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
-test_dataset = load_dataset("HuggingFaceH4/MATH-500", split="test",streaming = True, trust_remote_code=True)
+test_dataset = load_dataset("openai/gsm8k","main", split="test",streaming = True, trust_remote_code=True)
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33)
 prompt_loader = DataLoader(
     iterable_dataset,
@@ -162,7 +162,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             print(len(replay_buffer))
 
     val_batch = next(iter(val_loader))
-    questions = val_batch["problem"]
+    questions = val_batch["question"]
     answers = val_batch["answer"]
     if k % 5 == 0:
         val_returns = []
@@ -207,7 +207,7 @@ val_loader = DataLoader(
     pin_memory=False,
 )
 val_batch = next(iter(val_loader))
-questions = val_batch["problem"]
+questions = val_batch["question"]
 answers = val_batch["answer"]
 val_returns = []
 correct_per_q = []
