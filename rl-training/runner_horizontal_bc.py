@@ -6,6 +6,11 @@ from transformers import (
     GenerationConfig,
 )
 from sys import argv
+from datetime import timedelta
+delta = timedelta(
+
+    hours=3
+)
 import torch.distributed as dist
 import torch
 import os
@@ -68,7 +73,7 @@ prompt_loader = DataLoader(
 iterable_dataset_ts = test_dataset.shuffle(buffer_size=10_000, seed= 33)
 val_loader = DataLoader(
     iterable_dataset_ts,
-    batch_size=100,
+    batch_size=50,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -190,6 +195,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight, bc = bc_version)
     print(f"KL divergence of step {k}: {kl_sum}")
+    dist.monitored_barrier(timeout=timedelta)
 
 
     
