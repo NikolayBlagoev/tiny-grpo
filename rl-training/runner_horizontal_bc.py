@@ -197,7 +197,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight, bc = bc_version)
     print(f"KL divergence of step {k}: {kl_sum}")
-    dist.monitored_barrier(timeout=timedelta)
+    dist.barrier()
 
 val_loader = DataLoader(
     iterable_dataset_ts,
