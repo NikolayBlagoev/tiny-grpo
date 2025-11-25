@@ -81,6 +81,8 @@ val_loader = DataLoader(
 replay_buffer = []
 
 for k, prompt_batch in enumerate(prompt_loader):
+    if k == 100:
+        break
     rollout_returns = []
     rollout_indv = []
     replay_buffer.clear()
@@ -162,13 +164,13 @@ for k, prompt_batch in enumerate(prompt_loader):
     val_batch = next(iter(val_loader))
     questions = val_batch["problem"]
     answers = val_batch["answer"]
-    if k % 10 == 0:
+    if k % 5 == 0:
         val_returns = []
         correct_per_q = []
         with torch.no_grad():
             for q, a in zip(questions, answers):
                 tmp = []
-                for _ in range(16):
+                for _ in range(1):
                     _, _, _, completions = generate_benign(
                         model=model,
                         tokenizer=tokenizer,
@@ -183,8 +185,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                     val_returns += returns
                 correct_per_q.append(sum(tmp))
         print(f"VALIDATION RETURNS of step {k}: {sum(val_returns)/len(val_returns): .4f}")
-        for ki in [1,2,4,8,16,32,64]:
-            print(f"COVERAGE AT {ki} of step {k}: {np.mean(pass_at_k(16*8,correct_per_q,ki)): .4f}")
+        # for ki in [1,2,4,8,16,32,64]:
+        #     print(f"COVERAGE AT {ki} of step {k}: {np.mean(pass_at_k(16*8,correct_per_q,ki)): .4f}")
 
     torch.cuda.empty_cache()
     
@@ -197,5 +199,36 @@ for k, prompt_batch in enumerate(prompt_loader):
     print(f"KL divergence of step {k}: {kl_sum}")
     dist.monitored_barrier(timeout=timedelta)
 
+val_loader = DataLoader(
+    iterable_dataset_ts,
+    batch_size=100,
+    shuffle=False,
+    drop_last=True,
+    pin_memory=False,
+)
+val_batch = next(iter(val_loader))
+questions = val_batch["problem"]
+answers = val_batch["answer"]
+val_returns = []
+correct_per_q = []
+with torch.no_grad():
+    for q, a in zip(questions, answers):
+        tmp = []
+        for _ in range(16):
+            _, _, _, completions = generate_benign(
+                            model=model,
+                            tokenizer=tokenizer,
+                            q = q,
+                            oracle_answer=a,
+                            modify_answer=None,
+                            num_rollouts=16
+                        )
+            returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
+            returns = returns.flatten().tolist()
+            tmp = tmp + returns
+            val_returns += returns
+        correct_per_q.append(sum(tmp))
+print(f"VALIDATION RETURNS: {sum(val_returns)/len(val_returns): .4f}")
+for ki in [1,2,4,8,16,32,64,128]:
+    print(f"COVERAGE AT {ki}: {np.mean(pass_at_k(16*16,correct_per_q,ki)): .4f}")
 
-    
