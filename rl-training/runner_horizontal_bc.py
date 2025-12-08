@@ -61,7 +61,8 @@ ref_model = None
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
 train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
-test_dataset = load_dataset("openai/gsm8k","main", split="test",streaming = True, trust_remote_code=True)
+in_domain_test_ds = load_dataset("openai/gsm8k", "main", split="test",streaming = True, trust_remote_code=True)
+test_dataset = load_dataset("HuggingFaceH4/MATH-500","default", split="test",streaming = True, trust_remote_code=True)
 iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33)
 prompt_loader = DataLoader(
     iterable_dataset,
@@ -78,6 +79,15 @@ val_loader = DataLoader(
     drop_last=True,
     pin_memory=False,
 )
+iterable_dataset_ind = in_domain_test_ds.shuffle(buffer_size=10_000, seed= 33)
+ind_val_loader = DataLoader(
+    iterable_dataset_ind,
+    batch_size=50,
+    shuffle=False,
+    drop_last=True,
+    pin_memory=False,
+)
+
 replay_buffer = []
 
 for k, prompt_batch in enumerate(prompt_loader):
@@ -161,10 +171,34 @@ for k, prompt_batch in enumerate(prompt_loader):
             replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
 
-    val_batch = next(iter(val_loader))
-    questions = val_batch["question"]
-    answers = val_batch["answer"]
+    
     if k % 5 == 0:
+        val_batch = next(iter(val_loader))
+        questions = val_batch["problem"]
+        answers = val_batch["answer"]
+        val_returns = []
+        correct_per_q = []
+        with torch.no_grad():
+            for q, a in zip(questions, answers):
+                tmp = []
+                for _ in range(1):
+                    _, _, _, completions = generate_benign(
+                        model=model,
+                        tokenizer=tokenizer,
+                        q = q,
+                        oracle_answer=a,
+                        modify_answer=None,
+                        num_rollouts=8
+                    )
+                    returns, _, _ = reward_answer_binary(completions,a)
+                    returns = returns.flatten().tolist()
+                    tmp = tmp + returns
+                    val_returns += returns
+                correct_per_q.append(sum(tmp))
+        print(f"VALIDATION RETURNS of step {k} out of domain: {sum(val_returns)/len(val_returns): .4f}")
+        val_batch = next(iter(ind_val_loader))
+        questions = val_batch["question"]
+        answers = val_batch["answer"]
         val_returns = []
         correct_per_q = []
         with torch.no_grad():
@@ -184,7 +218,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     tmp = tmp + returns
                     val_returns += returns
                 correct_per_q.append(sum(tmp))
-        print(f"VALIDATION RETURNS of step {k}: {sum(val_returns)/len(val_returns): .4f}")
+        print(f"VALIDATION RETURNS of step {k} out of domain: {sum(val_returns)/len(val_returns): .4f}")
         # for ki in [1,2,4,8,16,32,64]:
         #     print(f"COVERAGE AT {ki} of step {k}: {np.mean(pass_at_k(16*8,correct_per_q,ki)): .4f}")
 
@@ -201,6 +235,40 @@ for k, prompt_batch in enumerate(prompt_loader):
 
 val_loader = DataLoader(
     iterable_dataset_ts,
+    batch_size=100,
+    shuffle=False,
+    drop_last=True,
+    pin_memory=False,
+)
+val_batch = next(iter(val_loader))
+questions = val_batch["problem"]
+answers = val_batch["answer"]
+val_returns = []
+correct_per_q = []
+with torch.no_grad():
+    for q, a in zip(questions, answers):
+        tmp = []
+        for _ in range(16):
+            _, _, _, completions = generate_benign(
+                            model=model,
+                            tokenizer=tokenizer,
+                            q = q,
+                            oracle_answer=a,
+                            modify_answer=None,
+                            num_rollouts=16
+                        )
+            returns, _, _ = reward_answer_binary(completions,a)
+            returns = returns.flatten().tolist()
+            tmp = tmp + returns
+            val_returns += returns
+        correct_per_q.append(sum(tmp))
+print(f"VALIDATION RETURNS in domain: {sum(val_returns)/len(val_returns): .4f}")
+for ki in [1,2,4,8,16,32,64,128]:
+    print(f"COVERAGE AT {ki} out of domain: {np.mean(pass_at_k(16*16,correct_per_q,ki)): .4f}")
+
+
+val_loader = DataLoader(
+    in_domain_test_ds,
     batch_size=100,
     shuffle=False,
     drop_last=True,
@@ -228,7 +296,7 @@ with torch.no_grad():
             tmp = tmp + returns
             val_returns += returns
         correct_per_q.append(sum(tmp))
-print(f"VALIDATION RETURNS: {sum(val_returns)/len(val_returns): .4f}")
+print(f"VALIDATION RETURNS out of domain: {sum(val_returns)/len(val_returns): .4f}")
 for ki in [1,2,4,8,16,32,64,128]:
-    print(f"COVERAGE AT {ki}: {np.mean(pass_at_k(16*16,correct_per_q,ki)): .4f}")
+    print(f"COVERAGE AT {ki} in domain: {np.mean(pass_at_k(16*16,correct_per_q,ki)): .4f}")
 
