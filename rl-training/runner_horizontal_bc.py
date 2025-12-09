@@ -5,6 +5,7 @@ from transformers import (
     AutoModelForCausalLM,
     GenerationConfig,
 )
+from time import sleep
 from sys import argv
 from datetime import timedelta
 delta = timedelta(
@@ -17,7 +18,7 @@ import os
 import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from generate_rollouts import generate_benign
+from generate_rollouts import generate_benign, generate_dumb
 from utils import trim_, Experience, pass_at_k
 from reward import reward_answer_binary
 from trainer import post_train
@@ -32,9 +33,13 @@ device_index = int(argv[1])
 kl = False
 world_size = 2
 dist.init_process_group("nccl", rank=device_index, world_size=world_size)
+evaluate = True
 model_name = "Qwen/Qwen2.5-1.5B"
 if argv[2] == "3":
     model_name = "Qwen/Qwen2.5-3B"
+elif argv[2] == "dumb":
+    evaluate = False
+    generate_benign = generate_dumb
 bc_version = int(argv[3])
 train_batch_size = 3
 lr = 5e-6
@@ -172,7 +177,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             print(len(replay_buffer))
 
     
-    if k % 5 == 0:
+    if k % 5 == 0 and evaluate:
         val_batch = next(iter(val_loader))
         questions = val_batch["problem"]
         answers = val_batch["answer"]
@@ -221,7 +226,8 @@ for k, prompt_batch in enumerate(prompt_loader):
         print(f"VALIDATION RETURNS of step {k} out of domain: {sum(val_returns)/len(val_returns): .4f}")
         # for ki in [1,2,4,8,16,32,64]:
         #     print(f"COVERAGE AT {ki} of step {k}: {np.mean(pass_at_k(16*8,correct_per_q,ki)): .4f}")
-
+    if k % 5 == 0 and not evaluate:
+        sleep(5 * 60)
     torch.cuda.empty_cache()
     
     episode_reward = torch.stack(rollout_returns).mean()
@@ -232,7 +238,9 @@ for k, prompt_batch in enumerate(prompt_loader):
     kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight, bc = bc_version)
     print(f"KL divergence of step {k}: {kl_sum}")
     dist.barrier()
-
+if not evaluate:
+    sleep(25 * 60)
+    exit()
 val_loader = DataLoader(
     iterable_dataset_ts,
     batch_size=100,

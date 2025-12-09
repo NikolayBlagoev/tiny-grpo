@@ -64,3 +64,56 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
     action_mask = action_mask[:, 1:]
     return sequence_ids, action_mask, start_seq, completions
 
+@torch.no_grad()
+def generate_dumb(model, tokenizer, q:str, num_rollouts = 6):
+    model.eval()
+    # 1. format prompt
+    chat_messages = [
+        {
+            "role": "system",
+            "content": system_prompt,
+        },
+        {
+            "role": "user",
+            "content": q,
+        },
+    ]
+    chat_prompt = tokenizer.apply_chat_template(
+        chat_messages, tokenize=False, add_generation_prompt=True
+    )
+    model_inputs = tokenizer(
+        [chat_prompt],
+        return_tensors="pt",
+        padding=True,
+        padding_side="left",
+        return_attention_mask=True,
+    ).to(model.device)
+    model_outputs = tokenizer(
+        ["nom nom"],
+        return_tensors="pt",
+        padding=False,
+        return_attention_mask=True,
+    )["input_ids"].to(model.device)
+    # print("NOM NOM: ",model_outputs)
+    # duplicate prompt num_rollouts times
+    model_inputs["attention_mask"] = model_inputs["attention_mask"].repeat(
+        num_rollouts, 1
+    )
+    
+    start_seq = model_inputs["input_ids"].shape[1]
+    model_inputs["input_ids"] = model_inputs["input_ids"].repeat(num_rollouts, 1)
+    model_outputs = model_outputs.repeat(num_rollouts, 1)
+    pad_token_id = tokenizer.pad_token_id
+    
+    sequence_ids = torch.cat((model_inputs["input_ids"],model_outputs),dim=1)
+
+    sequence_ids = F.pad(sequence_ids, (0,768 - sequence_ids.shape[1]), "constant", pad_token_id)  # effectively zero padding
+    completions = tokenizer.batch_decode(
+        sequence_ids[:, start_seq :], skip_special_tokens=True
+    )
+    # print("DUMB COMPLETION", completions)
+    action_mask = torch.zeros_like(sequence_ids, dtype=torch.bool)
+    action_mask[:, start_seq :] = True
+    action_mask[sequence_ids == pad_token_id] = False
+    action_mask = action_mask[:, 1:]
+    return sequence_ids, action_mask, start_seq, completions
