@@ -225,7 +225,9 @@ with torch.no_grad():
                             q = q,
                             oracle_answer=a,
                             modify_answer=None,
-                            num_rollouts=16
+                            num_rollouts=16,
+                            top_p=0.95,
+                            temperature=0.6
                         )
             returns, _, _ = reward_answer_binary(completions,a)
             returns = returns.flatten().tolist()
@@ -259,7 +261,9 @@ with torch.no_grad():
                             q = q,
                             oracle_answer=a,
                             modify_answer=None,
-                            num_rollouts=16
+                            num_rollouts=16,
+                            top_p=0.95,
+                            temperature=0.6
                         )
             returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
             returns = returns.flatten().tolist()
