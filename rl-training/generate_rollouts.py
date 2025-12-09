@@ -65,7 +65,7 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
     return sequence_ids, action_mask, start_seq, completions
 
 @torch.no_grad()
-def generate_dumb(model, tokenizer, q:str, num_rollouts = 6):
+def generate_dumb(model, tokenizer, q:str, oracle_answer = "", num_rollouts = 6, modify_answer = None):
     model.eval()
     # 1. format prompt
     chat_messages = [
