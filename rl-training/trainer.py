@@ -133,8 +133,28 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
                 loss = 0.25 * reverse_kl(logits,ref_logits,attention_mask,advantages=advantages) + 0.25 * causal_loss
 
+            # no filter
+            elif  kl_sum[-1] > 10**3 and bc == 22:
 
+                sequence_ids = exp.sequences[rng[0]:rng[1],:]
+                target = sequence_ids.clone()
+                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
+                target[attention_mask == 0] = -100
+                ref_logits = exp.logits[rng[0]:rng[1],:,:]
+                start_ids = exp.start_ids
+                advantages = exp.advantages[rng[0]:rng[1]]
+                target[:,:start_ids] = -100
+                
 
+                
+                logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
+                causal_loss = causalLLMLoss(logits,target,attention_mask,advantages=advantages)
+                logits = logits[:, :-1, :]
+                ref_logits = ref_logits[:, :-1, :]
+                logits = logits[:, (start_ids-1):,:]
+                ref_logits = ref_logits[:, (start_ids-1):,:].detach()
+                attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
+                loss = 0.5 * reverse_kl(logits,ref_logits,attention_mask,advantages=advantages) + 0.5 * causal_loss
             
             #SAPO:
             elif kl_sum[-1] > 10**3 and bc == 3:
