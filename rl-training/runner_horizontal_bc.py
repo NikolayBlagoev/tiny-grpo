@@ -47,7 +47,9 @@ kl_weight = 0.01
 
 
 group_size = 12
-my_size = 6
+my_size = 9
+if argv[2] == "3":
+    my_size = 3
 rollouts_per_step = 16
 
 
