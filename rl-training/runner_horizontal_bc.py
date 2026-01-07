@@ -113,7 +113,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 q = q,
                 oracle_answer=a,
                 modify_answer=None,
-                num_rollouts=6
+                num_rollouts=my_size
             )
             if len(replay_buffer) == 0:
                 print(completions[0])
@@ -158,10 +158,12 @@ for k, prompt_batch in enumerate(prompt_loader):
             
             attention_mask = sequence_ids != pad_token_id
             logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits
-            mx_size = world_size * 6
-            strt = device_index * mx_size
-            logits[:strt,:,:] = 0
-            logits[strt + 6:,:,:] = 0
+            
+           
+            if device_index == 0:
+                logits[my_size:,:,:] = 0
+            else:
+                logits[:group_size-my_size,:,:] = 0
             dist.all_reduce(logits)
             experience = Experience(
                         sequences=sequence_ids,
