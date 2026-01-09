@@ -183,7 +183,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     if k % 5 == 0 and evaluate:
         val_batch = next(iter(val_loader))
-        questions = val_batch["problem"]
+        questions = val_batch["question"]
         answers = val_batch["answer"]
         val_returns = []
         correct_per_q = []
@@ -253,7 +253,7 @@ val_loader = DataLoader(
     pin_memory=False,
 )
 val_batch = next(iter(val_loader))
-questions = val_batch["problem"]
+questions = val_batch["question"]
 answers = val_batch["answer"]
 val_returns = []
 correct_per_q = []
