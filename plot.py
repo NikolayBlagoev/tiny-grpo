@@ -6,7 +6,7 @@ def plot_line(fl, label, individual):
 
             if  not individual and "group returns of step" not in l:
                 continue
-            elif individual and "individual returns of step" not in l:
+            elif individual and "idividual returns of step" not in l:
                 continue
             l = l.split(" ")[-1].strip()
             l = float(l)
@@ -15,9 +15,9 @@ def plot_line(fl, label, individual):
         return
 
 
-plot_line("out_together.txt","RL together", False)
-plot_line("out0.txt","RL 1.5B model alone", True)
-plot_line("out1.txt","RL 3B model alone",True)
+# plot_line("out_together.txt","RL together", False)
+plot_line("out_1b_1.txt","RL OLD", True)
+plot_line("out_1b_2.txt","RL NEW",True)
 plt.legend()
 plt.ylabel("Reward")
 plt.title("iteration")
