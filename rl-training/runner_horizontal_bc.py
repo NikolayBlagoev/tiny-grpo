@@ -18,7 +18,7 @@ import os
 import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from generate_rollouts import generate_benign, generate_dumb
+from generate_rollouts import generate_benign, generate_dumb, system_prompt
 from utils import trim_, Experience, pass_at_k
 from reward import reward_answer_binary
 from trainer import post_train
@@ -47,9 +47,9 @@ kl_weight = 0.01
 
 
 group_size = 12
-my_size = 9
+my_size = 6
 if argv[2] == "3":
-    my_size = 3
+    my_size = 6
 rollouts_per_step = 16
 
 
@@ -80,7 +80,7 @@ prompt_loader = DataLoader(
 iterable_dataset_ts = test_dataset.shuffle(buffer_size=10_000, seed= 33)
 val_loader = DataLoader(
     iterable_dataset_ts,
-    batch_size=50,
+    batch_size=24,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -88,7 +88,7 @@ val_loader = DataLoader(
 iterable_dataset_ind = in_domain_test_ds.shuffle(buffer_size=10_000, seed= 33)
 ind_val_loader = DataLoader(
     iterable_dataset_ind,
-    batch_size=50,
+    batch_size=24,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -158,13 +158,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                     advantages /= (returns.std() + 1e-8)
             
             attention_mask = sequence_ids != pad_token_id
-            logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits
             
-           
-            if device_index == 0:
-                logits[my_size:,:,:] = 0
-            else:
-                logits[:group_size-my_size,:,:] = 0
             dist.all_reduce(logits)
             experience = Experience(
                         sequences=sequence_ids,
@@ -174,63 +168,103 @@ for k, prompt_batch in enumerate(prompt_loader):
                         action_mask=action_mask,
                         start_ids=completions_start,
                         ref_log_probs = seq_log_probs,
-                        logits=logits
+                        logits=None
                     )
             replay_buffer.append(experience.to("cpu"))
             print(len(replay_buffer))
 
     
     if k % 5 == 0 and evaluate:
-        val_batch = next(iter(val_loader))
-        questions = val_batch["problem"]
-        answers = val_batch["answer"]
+        
         val_returns = []
-        correct_per_q = []
         with torch.no_grad():
-            for q, a in zip(questions, answers):
-                tmp = []
-                for _ in range(1):
-                    _, _, _, completions = generate_benign(
-                        model=model,
-                        tokenizer=tokenizer,
-                        q = q,
-                        oracle_answer=a,
-                        modify_answer=None,
-                        num_rollouts=1,
-                        sample = False
-                    )
-                    returns, _, _ = reward_answer_binary(completions,a)
-                    returns = returns.flatten().tolist()
-                    tmp = tmp + returns
-                    val_returns += returns
-                correct_per_q.append(sum(tmp))
+            for _ in range(2):
+                val_batch = next(iter(val_loader))
+                questions = val_batch["problem"]
+                answers = val_batch["answer"]
+                chat_prompts = []
+                for question in q:
+                    chat_messages = [
+                        {
+                            "role": "system",
+                            "content": system_prompt,
+                        },
+                        {
+                            "role": "user",
+                            "content": question,
+                        }
+                    ]
+                    
+                    chat_prompts.append(tokenizer.apply_chat_template(
+                        chat_messages, tokenize=False, add_generation_prompt=True
+                    ))
+                model_inputs = tokenizer(
+                    chat_prompts,
+                    return_tensors="pt",
+                    padding=True,
+                    padding_side="left",
+                    return_attention_mask=True,
+                    add_special_tokens=False
+                ).to(model.device)
+                generation_config = GenerationConfig(
+                    max_new_tokens=768,
+                    do_sample=False,
+                    pad_token_id=tokenizer.pad_token_id,
+                    eos_token_id=tokenizer.eos_token_id,
+                )
+                start_seq = model_inputs["input_ids"].shape[1]
+            
+                completion_ids = model.generate(**model_inputs,generation_config = generation_config)
+                completion_ids = completion_ids[:, start_seq :]
+                completions = tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
+                rewards += reward_func(completions,answers)[0].mean().item()
         print(f"VALIDATION RETURNS of step {k} out of domain: {sum(val_returns)/len(val_returns): .4f}")
-        val_batch = next(iter(ind_val_loader))
-        questions = val_batch["question"]
-        answers = val_batch["answer"]
+        
         val_returns = []
-        correct_per_q = []
         with torch.no_grad():
-            for q, a in zip(questions, answers):
-                tmp = []
-                for _ in range(1):
-                    _, _, _, completions = generate_benign(
-                        model=model,
-                        tokenizer=tokenizer,
-                        q = q,
-                        oracle_answer=a,
-                        modify_answer=None,
-                        num_rollouts=1,
-                        sample = False
-                    )
-                    returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
-                    returns = returns.flatten().tolist()
-                    tmp = tmp + returns
-                    val_returns += returns
-                correct_per_q.append(sum(tmp))
+            for _ in range(2):
+                val_batch = next(iter(ind_val_loader))
+                questions = val_batch["question"]
+                answers = val_batch["answer"]
+                chat_prompts = []
+                for question in q:
+                    chat_messages = [
+                        {
+                            "role": "system",
+                            "content": system_prompt,
+                        },
+                        {
+                            "role": "user",
+                            "content": question,
+                        }
+                    ]
+                    
+                    chat_prompts.append(tokenizer.apply_chat_template(
+                        chat_messages, tokenize=False, add_generation_prompt=True
+                    ))
+                model_inputs = tokenizer(
+                    chat_prompts,
+                    return_tensors="pt",
+                    padding=True,
+                    padding_side="left",
+                    return_attention_mask=True,
+                    add_special_tokens=False
+                ).to(model.device)
+                generation_config = GenerationConfig(
+                    max_new_tokens=768,
+                    do_sample=False,
+                    pad_token_id=tokenizer.pad_token_id,
+                    eos_token_id=tokenizer.eos_token_id,
+                )
+                start_seq = model_inputs["input_ids"].shape[1]
+            
+                completion_ids = model.generate(**model_inputs,generation_config = generation_config)
+                completion_ids = completion_ids[:, start_seq :]
+                completions = tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
+                rewards += reward_func(completions,answers)[0].mean().item()
+                
         print(f"VALIDATION RETURNS of step {k} in domain: {sum(val_returns)/len(val_returns): .4f}")
-        # for ki in [1,2,4,8,16,32,64]:
-        #     print(f"COVERAGE AT {ki} of step {k}: {np.mean(pass_at_k(16*8,correct_per_q,ki)): .4f}")
+        
     if k % 5 == 0 and not evaluate:
         sleep(5 * 60)
     torch.cuda.empty_cache()
