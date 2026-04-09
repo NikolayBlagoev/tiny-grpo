@@ -159,7 +159,7 @@ for k, prompt_batch in enumerate(prompt_loader):
             
             attention_mask = sequence_ids != pad_token_id
             
-            dist.all_reduce(logits)
+        
             experience = Experience(
                         sequences=sequence_ids,
                         returns=returns,
