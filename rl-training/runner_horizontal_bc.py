@@ -175,7 +175,7 @@ for k, prompt_batch in enumerate(prompt_loader):
 
     
     if k % 5 == 0 and evaluate:
-        
+        rewards = 0
         val_returns = []
         with torch.no_grad():
             for _ in range(2):
@@ -217,9 +217,9 @@ for k, prompt_batch in enumerate(prompt_loader):
                 completion_ids = model.generate(**model_inputs,generation_config = generation_config)
                 completion_ids = completion_ids[:, start_seq :]
                 completions = tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
-                rewards += reward_func(completions,answers)[0].mean().item()
-        print(f"VALIDATION RETURNS of step {k} out of domain: {sum(val_returns)/len(val_returns): .4f}")
-        
+                rewards += reward_func(completions,answers)[0].mean().item()/2
+        print(f"VALIDATION RETURNS of step {k} out of domain: {rewards: .4f}")
+        rewards = 0
         val_returns = []
         with torch.no_grad():
             for _ in range(2):
@@ -261,9 +261,9 @@ for k, prompt_batch in enumerate(prompt_loader):
                 completion_ids = model.generate(**model_inputs,generation_config = generation_config)
                 completion_ids = completion_ids[:, start_seq :]
                 completions = tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
-                rewards += reward_func(completions,answers)[0].mean().item()
+                rewards += reward_func(completions,answers)[0].mean().item() / 2
                 
-        print(f"VALIDATION RETURNS of step {k} in domain: {sum(val_returns)/len(val_returns): .4f}")
+        print(f"VALIDATION RETURNS of step {k} in domain: {rewards: .4f}")
         
     if k % 5 == 0 and not evaluate:
         sleep(5 * 60)
