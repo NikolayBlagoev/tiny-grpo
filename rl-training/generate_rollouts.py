@@ -12,7 +12,7 @@ The assistant needs to provide a detailed step by step solution of the problem. 
 once = True
 
 @torch.no_grad()
-def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, modify_answer = None, top_p = 1.0, temperature = 1.0):
+def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 6, modify_answer = None, top_p = 1.0, temperature = 1.0, sample = True):
     
     model.eval()
     # 1. format prompt
@@ -46,7 +46,7 @@ def generate_benign(model, tokenizer, q:str, oracle_answer: str, num_rollouts = 
     pad_token_id = tokenizer.eos_token_id
     generation_config = GenerationConfig(
             max_length=760,
-            do_sample=True,
+            do_sample=sample,
             pad_token_id=pad_token_id,
             eos_token_id=pad_token_id,
             temperature=temperature,

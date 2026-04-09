@@ -197,7 +197,8 @@ for k, prompt_batch in enumerate(prompt_loader):
                         q = q,
                         oracle_answer=a,
                         modify_answer=None,
-                        num_rollouts=8
+                        num_rollouts=1,
+                        sample = False
                     )
                     returns, _, _ = reward_answer_binary(completions,a)
                     returns = returns.flatten().tolist()
@@ -220,14 +221,15 @@ for k, prompt_batch in enumerate(prompt_loader):
                         q = q,
                         oracle_answer=a,
                         modify_answer=None,
-                        num_rollouts=8
+                        num_rollouts=1,
+                        sample = False
                     )
                     returns, _, _ = reward_answer_binary(completions,a.split(" ")[-1])
                     returns = returns.flatten().tolist()
                     tmp = tmp + returns
                     val_returns += returns
                 correct_per_q.append(sum(tmp))
-        print(f"VALIDATION RETURNS of step {k} out of domain: {sum(val_returns)/len(val_returns): .4f}")
+        print(f"VALIDATION RETURNS of step {k} in domain: {sum(val_returns)/len(val_returns): .4f}")
         # for ki in [1,2,4,8,16,32,64]:
         #     print(f"COVERAGE AT {ki} of step {k}: {np.mean(pass_at_k(16*8,correct_per_q,ki)): .4f}")
     if k % 5 == 0 and not evaluate:
