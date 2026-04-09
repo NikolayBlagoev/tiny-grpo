@@ -5,37 +5,7 @@ from torch.nn.utils import clip_grad_norm_
 from utils import Experience
 from grpo import grpo_loss, sequences_log_probs
 
-def causalLLMLoss(x, target, attention_mask = None, ignore_index=-100, advantages = None):
-    x = x.float()
-    target = target.to(x.device)
-    target = F.pad(target, (0, 1), value=ignore_index)
-    shift_labels = target[..., 1:].contiguous()
-    shift_mask = None
-    if attention_mask != None:
-        
-        shift_labels = shift_labels * attention_mask
-    x = x.view(-1, x.size(-1))
-    shift_labels = shift_labels.view(-1)
-    loss = F.cross_entropy(x, shift_labels, ignore_index=ignore_index, reduction="none")
-    if advantages != None:
-        loss = loss * advantages
-    loss = loss.mean()
-    return loss
 
-def reverse_kl(logits, teacher_logits, attention_mask, advantages = None):
-    student_probs = F.softmax(logits, dim=-1, dtype=torch.float32)
-    student_logprobs = F.log_softmax(logits, dim=-1, dtype=torch.float32)
-    teacher_logprobs = F.log_softmax(teacher_logits, dim=-1, dtype=torch.float32)
-    inf_mask = torch.isinf(teacher_logits) | torch.isinf(logits)
-    prod_probs = torch.masked_fill(student_probs * teacher_logprobs, inf_mask, 0)
-    prod_probs -= torch.masked_fill(student_probs * student_logprobs, inf_mask, 0)
-    x = torch.sum(prod_probs, dim=-1)
-    if advantages != None:
-        x *= advantages
-    x = x.view(-1)
-    mask = attention_mask.int()
-    distil_loss = -torch.sum(x * mask.view(-1), dim=0) / torch.sum(mask.view(-1), dim=0)
-    return distil_loss
 
 
 def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc = 0):
@@ -46,6 +16,8 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
     kl_sum = []
     for exp in replay_buffer:
         exp: Experience
+        if torch.count_nonzero(exp.advantages).item() == 0:
+            continue
         skip = exp.sequences.shape[0] // train_batch_size
         exp = exp.to(device)
         for mb in range(train_batch_size):
@@ -68,136 +40,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
 
             kl_sum.append(per_token_kl.mean().item())
 
-            #SIMPLE SFT
-            if kl_sum[-1] > 10**4 and bc == 1:
-                drop = []
-                for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
-                    adv = adv.item()
-                    if adv <= 0:
-                        drop.append(idx)
-                if len(drop) == (rng[1] - rng[0]):
-                    continue
-                sequence_ids = exp.sequences[rng[0]:rng[1],:]
-                target = sequence_ids.clone()
-                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
-                target[attention_mask == 0] = -100
-                
-                start_ids = exp.start_ids
-                target[:,:start_ids] = -100
-                
-
-                for idx,i in enumerate(drop):
-                    sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
-                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
-                    target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
-                logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
-                # logits = logits[:, :-1, :]
-
-                
-                loss = causalLLMLoss(logits,target,attention_mask)
-            
-            # distillation
-            elif  kl_sum[-1] > 10**3 and bc == 2:
-                
-                drop = []
-                for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
-                    adv = adv.item()
-                    if adv <= 0:
-                        drop.append(idx)
-                if len(drop) == (rng[1] - rng[0]):
-                    continue
-                sequence_ids = exp.sequences[rng[0]:rng[1],:]
-                target = sequence_ids.clone()
-                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
-                target[attention_mask == 0] = -100
-                
-                start_ids = exp.start_ids
-                advantages = exp.advantages[rng[0]:rng[1]]
-                
-
-                for idx,i in enumerate(drop):
-                    log_probs = torch.cat([log_probs[:(i-idx),:],log_probs[(1+i-idx):,:]])
-                    ref_log_probs = torch.cat([ref_log_probs[:(i-idx),:],ref_log_probs[(1+i-idx):,:]])
-                    sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
-                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
-                    
-                    advantages = torch.cat([advantages[:(i-idx),:],advantages[(1+i-idx):,]])
-                loss = (
-                    torch.exp(ref_log_probs - log_probs)
-                    - (ref_log_probs - log_probs)
-                    - 1
-                ).mean()
-                
-
-            # no filter
-            elif  kl_sum[-1] > 10**3 and bc == 22:
-                loss = 1.0 * per_token_kl.mean()
-            
-            #SAPO:
-            elif kl_sum[-1] > 10**3 and bc == 3:
-                drop = []
-                for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
-                    adv = adv.item()
-                    if adv <= 0:
-                        drop.append(idx)
-                if len(drop) == (rng[1] - rng[0]):
-                    continue
-                sequence_ids = exp.sequences[rng[0]:rng[1],:]
-                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
-                start_ids = exp.start_ids                
-                advantages = exp.advantages[rng[0]:rng[1]]
-                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
-                
-                start_ids = exp.start_ids
-
-                for idx,i in enumerate(drop):
-                    log_probs = torch.cat([log_probs[:(i-idx),:],log_probs[(1+i-idx):,:]])
-                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
-                    advantages = torch.cat([advantages[:(i-idx)],advantages[(1+i-idx):]])
-                
-                ref_log_probs = None
-                loss = grpo_loss(log_probs=log_probs, advantages=advantages, attention_mask=attention_mask,
-                            completion_start=start_ids, ref_log_probs=ref_log_probs, beta= 0.0)
-
-                if not loss.isfinite():
-                    continue
-            
-            elif  kl_sum[-1] > 10**3 and bc == 4:
-                drop = []
-                for idx,adv in enumerate(exp.advantages[rng[0]:rng[1]]):
-                    adv = adv.item()
-                    if adv <= 0:
-                        drop.append(idx)
-                if len(drop) == (rng[1] - rng[0]):
-                    continue
-                sequence_ids = exp.sequences[rng[0]:rng[1],:]
-                target = sequence_ids.clone()
-                attention_mask = exp.attention_mask[rng[0]:rng[1],:]
-                target[attention_mask == 0] = -100
-                ref_logits = exp.logits[rng[0]:rng[1],:,:]
-                start_ids = exp.start_ids
-                target[:,:start_ids] = -100
-                
-
-                for idx,i in enumerate(drop):
-                    log_probs = torch.cat([log_probs[:(i-idx),:],log_probs[(1+i-idx):,:]])
-                    ref_log_probs = torch.cat([ref_log_probs[:(i-idx),:],ref_log_probs[(1+i-idx):,:]])
-                    sequence_ids = torch.cat([sequence_ids[:(i-idx),:],sequence_ids[(1+i-idx):,:]])
-                    attention_mask = torch.cat([attention_mask[:(i-idx),:],attention_mask[(1+i-idx):,:]])
-                    target = torch.cat([target[:(i-idx),:],target[(1+i-idx):,:]])
-                    ref_logits = torch.cat([ref_logits[:(i-idx),:,:],ref_logits[(1+i-idx):,:,:]])
-                logits = model(input_ids=sequence_ids, attention_mask=attention_mask).logits 
-                logits = logits[:, :-1, :]
-                ref_logits = ref_logits[:, :-1, :]
-                logits = logits[:, (start_ids-1):,:]
-                ref_logits = ref_logits[:, (start_ids-1):,:].detach()
-                attention_mask = attention_mask[:,start_ids:].to(dtype=logits.dtype)
-                loss = 0.5 * reverse_kl(logits,ref_logits,attention_mask)
-                
-                # print("SIZES",loss.shape,attention_mask.shape)
-                # loss = loss * attention_mask + (1.0 - attention_mask) * torch.finfo(logits.dtype).min
-            # importance sampled
-            elif kl_sum[-1] > 1 and bc == 5:
+            if bc == 5:
                 
 
                 loss = grpo_loss(log_probs=log_probs, advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],
@@ -205,7 +48,6 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
                 if not loss.isfinite():
                     continue
             
-                
             else:
                 ref_log_probs = None
                 if ref_model != None:

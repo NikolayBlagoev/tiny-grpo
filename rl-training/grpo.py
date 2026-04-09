@@ -31,13 +31,7 @@ def sequences_log_probs(model, sequence_ids, attention_mask, completion_start):
     log_prob = F.log_softmax(logits, dim=-1)
     token_log_probs = log_prob.gather(dim=-1, index=labels.unsqueeze(-1)).squeeze(-1)
 
-    # compute CE:
-    # token_log_probs = - F.cross_entropy(
-    #     logits.view(-1, logits_shape[-1]),
-    #     labels.view(-1),
-    #     reduction='none',
-    # ).view(logits_shape[0], logits_shape[1])
-    # remove the unnecessary values (0s and question values)
+   
     token_log_probs = token_log_probs * loss_mask + (1.0 - loss_mask) * torch.finfo(logits.dtype).min
     return token_log_probs
 
