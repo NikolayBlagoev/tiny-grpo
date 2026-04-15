@@ -217,7 +217,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 completion_ids = model.generate(**model_inputs,generation_config = generation_config)
                 completion_ids = completion_ids[:, start_seq :]
                 completions = tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
-                rewards += reward_func(completions,answers)[0].mean().item()/2
+                rewards += reward_answer_binary(completions,answers)[0].mean().item()/2
         print(f"VALIDATION RETURNS of step {k} out of domain: {rewards: .4f}")
         rewards = 0
         val_returns = []
@@ -261,7 +261,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 completion_ids = model.generate(**model_inputs,generation_config = generation_config)
                 completion_ids = completion_ids[:, start_seq :]
                 completions = tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
-                rewards += reward_func(completions,answers)[0].mean().item() / 2
+                rewards += reward_answer_binary(completions,answers)[0].mean().item() / 2
                 
         print(f"VALIDATION RETURNS of step {k} in domain: {rewards: .4f}")
         
