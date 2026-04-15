@@ -175,57 +175,15 @@ for k, prompt_batch in enumerate(prompt_loader):
 
     
     if k % 5 == 0 and evaluate:
+    
         rewards = 0
         val_returns = []
         with torch.no_grad():
+            tmp_loader = iter(ind_val_loader)
             for _ in range(2):
-                val_batch = next(iter(val_loader))
-                questions = val_batch["problem"]
-                answers = val_batch["answer"]
-                chat_prompts = []
-                for question in q:
-                    chat_messages = [
-                        {
-                            "role": "system",
-                            "content": system_prompt,
-                        },
-                        {
-                            "role": "user",
-                            "content": question,
-                        }
-                    ]
-                    
-                    chat_prompts.append(tokenizer.apply_chat_template(
-                        chat_messages, tokenize=False, add_generation_prompt=True
-                    ))
-                model_inputs = tokenizer(
-                    chat_prompts,
-                    return_tensors="pt",
-                    padding=True,
-                    padding_side="left",
-                    return_attention_mask=True,
-                    add_special_tokens=False
-                ).to(model.device)
-                generation_config = GenerationConfig(
-                    max_new_tokens=768,
-                    do_sample=False,
-                    pad_token_id=tokenizer.pad_token_id,
-                    eos_token_id=tokenizer.eos_token_id,
-                )
-                start_seq = model_inputs["input_ids"].shape[1]
-            
-                completion_ids = model.generate(**model_inputs,generation_config = generation_config)
-                completion_ids = completion_ids[:, start_seq :]
-                completions = tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
-                rewards += reward_answer_binary(completions,answers)[0].mean().item()/2
-        print(f"VALIDATION RETURNS of step {k} out of domain: {rewards: .4f}")
-        rewards = 0
-        val_returns = []
-        with torch.no_grad():
-            for _ in range(2):
-                val_batch = next(iter(ind_val_loader))
+                val_batch = next(tmp_loader)
                 questions = val_batch["question"]
-                answers = val_batch["answer"]
+                answers = list(map(lambda el: el.split(" ")[-1],val_batch["answer"]))
                 chat_prompts = []
                 for question in q:
                     chat_messages = [
