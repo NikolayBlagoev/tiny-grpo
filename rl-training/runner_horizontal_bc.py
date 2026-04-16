@@ -185,7 +185,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 questions = val_batch["question"]
                 answers = list(map(lambda el: el.split(" ")[-1],val_batch["answer"]))
                 chat_prompts = []
-                for question in q:
+                for question in questions:
                     chat_messages = [
                         {
                             "role": "system",
