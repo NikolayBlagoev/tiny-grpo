@@ -40,7 +40,7 @@ def post_train(model, optimizer, replay_buffer, ref_model = None, beta = 0.0, bc
 
             kl_sum.append(per_token_kl.mean().item())
 
-            if bc == 5:
+            if bc == "vis":
                 
 
                 loss = grpo_loss(log_probs=log_probs, advantages=exp.advantages[rng[0]:rng[1]], attention_mask=exp.attention_mask[rng[0]:rng[1],:],

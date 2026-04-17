@@ -27,77 +27,77 @@ from grpo import sequences_log_probs
 
 import torch.nn.functional as F
 seed = 42
-os.environ["MASTER_ADDR"] = "localhost"
-os.environ["MASTER_PORT"] = "29500"
+ds_seed = 42
+from interp_config import process_config
 device_index = int(argv[1])
-kl = False
-world_size = 2
-dist.init_process_group("nccl", rank=device_index, world_size=world_size)
-evaluate = True
-model_name = "Qwen/Qwen2.5-1.5B"
-if argv[2] == "3":
-    model_name = "Qwen/Qwen2.5-3B"
-elif argv[2] == "dumb":
-    evaluate = False
-    generate_benign = generate_dumb
-bc_version = int(argv[3])
-train_batch_size = 3
+method = argv[2]
+scenario = argv[3]
+out_dir = argv[4]
+
+
+
+system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
+The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags with nothing outside said tags, i.e., <think> reasoning process here </think><answer> answer here </answer>\n
+"""
+
+scenario = process_config(scenario,ds_seed,device_index=device_index)
+
 lr = 5e-6
-kl_weight = 0.01
+kl_weight = 0
+comm_style = scenario["comm_style"]
+group_size = scenario["group_size"]
+world_size = scenario["world_size"]
+batch_size = scenario["batch_size"]
+
+if comm_style != "alone" and world_size > 1:
+    setup_comms(device_index,world_size)
 
 
-group_size = 12
-my_size = 6
-if argv[2] == "3":
-    my_size = 6
-rollouts_per_step = 16
+if comm_style == "horizontal":
+    group_size = group_size // world_size
+grpo_config = GRPOConfig(num_generations=group_size)
 
+model_name = scenario["model_name"]
+
+reward_func = scenario["reward_func"]
 
 device = f"cuda:{device_index}"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 tokenizer.pad_token = tokenizer.eos_token
+tokenizer.pad_token_id = tokenizer.eos_token_id
 pad_token_id = tokenizer.eos_token_id
-model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
+model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device, dtype=torch.float32)
+
 model.generation_config.max_new_tokens = None
-
-ref_model = None
-
-# ref_model = AutoModelForCausalLM.from_pretrained(model_name, device_map=device)
-    
 optimizer = optim.Adam(model.parameters(), lr=lr)
 
-train_dataset = load_dataset("openai/gsm8k", "main", split="train",streaming = True, trust_remote_code=True)
-in_domain_test_ds = load_dataset("openai/gsm8k", "main", split="test",streaming = True, trust_remote_code=True)
-test_dataset = load_dataset("HuggingFaceH4/MATH-500","default", split="test",streaming = True, trust_remote_code=True)
-iterable_dataset = train_dataset.shuffle(buffer_size=10_000, seed= 33)
-prompt_loader = DataLoader(
-    iterable_dataset,
-    batch_size=rollouts_per_step,
-    shuffle=False,
-    drop_last=True,
-    pin_memory=False,
-)
-iterable_dataset_ts = test_dataset.shuffle(buffer_size=10_000, seed= 33)
+train_dataset = scenario["dl_benign"]
+train_kwargs = scenario["train_kwargs"]
+val_ds = scenario["val_loader"]
 val_loader = DataLoader(
-    iterable_dataset_ts,
-    batch_size=24,
-    shuffle=False,
-    drop_last=True,
-    pin_memory=False,
-)
-iterable_dataset_ind = in_domain_test_ds.shuffle(buffer_size=10_000, seed= 33)
-ind_val_loader = DataLoader(
-    iterable_dataset_ind,
-    batch_size=24,
+    val_ds,
+    batch_size=4,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
 )
 
+
+
+prompt_loader = DataLoader(
+    train_dataset,
+    batch_size=batch_size,
+    shuffle=False,
+    drop_last=True,
+    pin_memory=False
+)
+data_interp = scenario["data_interp"]
 replay_buffer = []
+global_counter = 0
+print(tokenizer.pad_token_id)
 
 for k, prompt_batch in enumerate(prompt_loader):
-    if k == 100:
+    if k == 101:
         break
     rollout_returns = []
     rollout_indv = []
@@ -232,7 +232,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     episode_reward = torch.stack(rollout_indv).mean()
     print(f"idividual returns of step {k}: {episode_reward:.4f}")
     
-    kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight, bc = bc_version)
+    kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight, bc = method)
     print(f"KL divergence of step {k}: {kl_sum}")
     dist.barrier()
 if not evaluate:
