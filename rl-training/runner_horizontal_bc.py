@@ -135,16 +135,16 @@ for k, prompt_batch in enumerate(prompt_loader):
                 sequence_ids = torch.cat([torch.zeros((group_size-my_size,sequence_ids.shape[1]),device=device, dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
                 returns = torch.cat([torch.zeros((group_size-my_size,1),device=device, dtype=returns.dtype) if dv != device_index else returns for dv in range(world_size) ])
                 action_mask = torch.cat([torch.zeros((group_size-my_size,action_mask.shape[1]),device=device, dtype=action_mask.dtype) if dv != device_index else action_mask for dv in range(world_size) ])
-                seq_log_probs_global = torch.cat([torch.zeros((group_size-my_size,seq_log_probs.shape[1]),device=device, dtype=seq_log_probs.dtype) if dv != device_index else seq_log_probs for dv in range(world_size) ])                        
+                seq_log_probs = torch.cat([torch.zeros((group_size-my_size,seq_log_probs.shape[1]),device=device, dtype=seq_log_probs.dtype) if dv != device_index else seq_log_probs for dv in range(world_size) ])                        
                 
                 dist.all_reduce(sequence_ids)
                 dist.all_reduce(returns)
                 dist.all_reduce(action_mask)
-                dist.all_reduce(seq_log_probs_global)
+                dist.all_reduce(seq_log_probs)
             
             
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
-            seq_log_probs = seq_log_probs_global[:,:(sequence_ids.shape[1] - completions_start)]
+            seq_log_probs = seq_log_probs[:,:(sequence_ids.shape[1] - completions_start)]
             print("SHAPE gotten",seq_log_probs.shape)
             rollout_returns.append(returns.to("cpu"))
 
