@@ -36,12 +36,8 @@ out_dir = argv[4]
 
 
 
-system_prompt = """A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
-The assistant needs to provide a detailed step by step solution of the problem. The reasoning process is enclosed within <think> </think> and the answer within <answer> </answer> tags with nothing outside said tags, i.e., <think> reasoning process here </think><answer> answer here </answer>\n
-"""
-
 scenario = process_config(scenario,ds_seed,device_index=device_index)
-
+evaluate = True
 lr = 5e-6
 kl_weight = 0
 comm_style = scenario["comm_style"]
@@ -50,12 +46,11 @@ world_size = scenario["world_size"]
 batch_size = scenario["batch_size"]
 
 if comm_style != "alone" and world_size > 1:
-    setup_comms(device_index,world_size)
+    dist.init_process_group("nccl", rank=device_index, world_size=world_size)
 
-
+my_size = group_size
 if comm_style == "horizontal":
-    group_size = group_size // world_size
-grpo_config = GRPOConfig(num_generations=group_size)
+    my_size = group_size // world_size
 
 model_name = scenario["model_name"]
 
@@ -76,7 +71,7 @@ train_kwargs = scenario["train_kwargs"]
 val_ds = scenario["val_loader"]
 val_loader = DataLoader(
     val_ds,
-    batch_size=4,
+    batch_size=16,
     shuffle=False,
     drop_last=True,
     pin_memory=False,
@@ -134,17 +129,17 @@ for k, prompt_batch in enumerate(prompt_loader):
             print("SHAPE padded",seq_log_probs.shape)
             
 
+            if world_size > 1:
             
-            
-            sequence_ids = torch.cat([torch.zeros((group_size-my_size,sequence_ids.shape[1]),device=device, dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
-            returns = torch.cat([torch.zeros((group_size-my_size,1),device=device, dtype=returns.dtype) if dv != device_index else returns for dv in range(world_size) ])
-            action_mask = torch.cat([torch.zeros((group_size-my_size,action_mask.shape[1]),device=device, dtype=action_mask.dtype) if dv != device_index else action_mask for dv in range(world_size) ])
-            seq_log_probs_global = torch.cat([torch.zeros((group_size-my_size,seq_log_probs.shape[1]),device=device, dtype=seq_log_probs.dtype) if dv != device_index else seq_log_probs for dv in range(world_size) ])                        
-            
-            dist.all_reduce(sequence_ids)
-            dist.all_reduce(returns)
-            dist.all_reduce(action_mask)
-            dist.all_reduce(seq_log_probs_global)
+                sequence_ids = torch.cat([torch.zeros((group_size-my_size,sequence_ids.shape[1]),device=device, dtype=sequence_ids.dtype) if dv != device_index else sequence_ids for dv in range(world_size) ])
+                returns = torch.cat([torch.zeros((group_size-my_size,1),device=device, dtype=returns.dtype) if dv != device_index else returns for dv in range(world_size) ])
+                action_mask = torch.cat([torch.zeros((group_size-my_size,action_mask.shape[1]),device=device, dtype=action_mask.dtype) if dv != device_index else action_mask for dv in range(world_size) ])
+                seq_log_probs_global = torch.cat([torch.zeros((group_size-my_size,seq_log_probs.shape[1]),device=device, dtype=seq_log_probs.dtype) if dv != device_index else seq_log_probs for dv in range(world_size) ])                        
+                
+                dist.all_reduce(sequence_ids)
+                dist.all_reduce(returns)
+                dist.all_reduce(action_mask)
+                dist.all_reduce(seq_log_probs_global)
             
             
             sequence_ids, action_mask = trim_(sequence_ids,action_mask, tokenizer.eos_token_id)
@@ -180,7 +175,7 @@ for k, prompt_batch in enumerate(prompt_loader):
         val_returns = []
         with torch.no_grad():
             tmp_loader = iter(ind_val_loader)
-            for _ in range(2):
+            for _ in range(4):
                 val_batch = next(tmp_loader)
                 questions = val_batch["question"]
                 answers = list(map(lambda el: el.split(" ")[-1],val_batch["answer"]))
@@ -219,7 +214,7 @@ for k, prompt_batch in enumerate(prompt_loader):
                 completion_ids = model.generate(**model_inputs,generation_config = generation_config)
                 completion_ids = completion_ids[:, start_seq :]
                 completions = tokenizer.batch_decode(completion_ids, skip_special_tokens=True)
-                rewards += reward_answer_binary(completions,answers)[0].mean().item() / 2
+                rewards += reward_answer_binary(completions,answers)[0].mean().item() / 4
                 
         print(f"VALIDATION RETURNS of step {k} in domain: {rewards: .4f}")
         
