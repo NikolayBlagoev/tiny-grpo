@@ -230,7 +230,7 @@ for k, prompt_batch in enumerate(prompt_loader):
     
     kl_sum = post_train(model, optimizer, replay_buffer, ref_model, kl_weight, bc = method)
     print(f"KL divergence of step {k}: {kl_sum}")
-    dist.barrier()
+    # dist.barrier()
 if not evaluate:
     sleep(25 * 60)
     exit()
