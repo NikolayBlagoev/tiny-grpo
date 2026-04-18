@@ -34,7 +34,8 @@ method = argv[2]
 scenario = argv[3]
 out_dir = argv[4]
 
-
+os.environ["MASTER_ADDR"] = "localhost"
+os.environ["MASTER_PORT"] = "29500"
 
 scenario = process_config(scenario,ds_seed,device_index=device_index)
 evaluate = True
