@@ -175,7 +175,7 @@ for k, prompt_batch in enumerate(prompt_loader):
         rewards = 0
         val_returns = []
         with torch.no_grad():
-            tmp_loader = iter(ind_val_loader)
+            tmp_loader = iter(val_loader)
             for _ in range(4):
                 val_batch = next(tmp_loader)
                 questions = val_batch["question"]
